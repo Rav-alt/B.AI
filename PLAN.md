@@ -12,8 +12,8 @@
 > **Every agent:** update this block at the end of any task that finishes a step or changes what
 > comes next. Keep it short; details go in `docs/learning-log/`.
 
-**Last updated:** 2026-10-05 01:30 (Asia/Manila)
-**Current phase:** Phase 4 done. **Next: Phase 5 — UI.** First, run `npm run try:chat` once with the real Gemini key.
+**Last updated:** 2026-10-05 02:30 (Asia/Manila)
+**Current phase:** Phase 5 done. **Next: Phase 6 — Deploy.** First, look at the UI on the PC (`npm run dev`).
 **Repo:** https://github.com/Rav-alt/B.AI (branch `main`) · local copy: `C:\Projects\B.AI`
 
 ### Done
@@ -29,8 +29,14 @@
 - ✅ **Phase 4** — `POST /api/chat` (`app/api/chat/route.ts` → `lib/chat/pipeline.ts`): Gemini parses + words the answer,
   router decides, AI text checked against router names, templates + simple parser when AI is off/429. 116 tests pass.
   Try it: `npm run try:chat -- "Pedro Gil Taft to España"`. Details: `docs/data-notes.md` → "Phase 4 results".
+- ✅ **Phase 5** — chat UI per `DESIGN.md` (now the shadcn/Motion version): welcome, trip answer (lead, steps with
+  badges + signboard placards, total, Leaflet map card + full-screen dialog, disclaimer, other options), check-route
+  cards, place picker, location button, From/To fallback, `/limitations`. Gemini now writes only the lead line.
+  128 tests pass; checked with Playwright at 360px. Code map: `DESIGN.md` §14.
 
 ### Open items
+- [ ] **Owner:** run `npm run dev` and check the UI with real map tiles and real Gemini leads (both blocked in the
+      cloud workspace). Also try "use my location" on a phone (needs HTTPS or localhost).
 - [x] Real Gemini run on the owner's PC (2026-10-05): works via the backup model. Found: `gemini-3.8-flash` free tier =
       **20 requests/day** (~10 questions), often 503, refuses MINIMAL thinking. Client now steps thinking down, switches
       to `gemini-3.5-flash-lite` on 429/503/timeout and waits for the quota reset. See `docs/data-notes.md`.
@@ -79,17 +85,16 @@
 - Response `ChatResponse`: `kind` (route · check · no_route · ask_place · place_not_found · need_more_info ·
   need_location · off_topic · fallback_form), `text` (**bold** + numbered steps), `lang`, `origin`/`destination`,
   `plan` or `check` (legs with polylines for the map), `choices`, `disclaimer`, `writer` (ai | template), `fallbackReason`.
-- `fallback_form` → show the From/To boxes. `ask_place` → show `choices` as buttons, resend with `picked`.
+- `fallback_form` → show the From/To boxes (`from`/`fromCurrentLocation`, `to`, `prefs`). `ask_place` → show `choices` as buttons, resend with `picked`.
+- For route/check answers `text` is the one-line lead; the UI draws steps from `plan`/`check`.
 - HTTP 429 `{ error: "rate_limited" }` when a visitor sends > 10/min; 400 on a bad body.
 
-### Next steps (Phase 5 — UI, follow `DESIGN.md` exactly)
-1. shadcn init + theme tokens + fonts + `Providers` (read `DESIGN.md` and `AGENTS.md` first).
-2. Static pieces: Logo, Signboard, ModeBadge, Disclaimer, header, footer, input bar.
-3. Welcome screen, trip answer, check-routes verdicts — use saved `/api/chat` responses as fixtures first
-   (`npm run try:chat` output, or `curl` the endpoint).
-4. Map card + full-screen dialog (Leaflet, client-only).
-5. Hook up `/api/chat`, location button, From/To fallback, place choices.
-6. Motion polish (allow-list only).
+### Next steps (Phase 6 — Deploy)
+1. Vercel Hobby: import the GitHub repo; set `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`, `NOMINATIM_CONTACT`.
+2. Check the `/api/chat` function bundle includes `data/generated/network.json` and `data/landmarks.json`
+   (`outputFileTracingIncludes` in `next.config.ts`) and stays under the size limit.
+3. Smoke-test the deployed site: the acceptance questions, the fallback (remove the key in a preview), the map.
+4. README: screenshots, architecture diagram, limitations, data credits (DOTC/DOTr disclaimer, OSM), free-tier notes.
 
 ---
 
@@ -185,7 +190,7 @@ Pure TypeScript in `lib/router/`, test-first.
 
 **Exit check:** all acceptance tests in `CLAUDE.md` that don't need a browser pass.
 
-## Phase 5 — UI ⏭ next
+## Phase 5 — UI ✅ done 2026-10-05
 
 Follow `DESIGN.md` exactly.
 1. shadcn init + theme tokens + fonts + `Providers`.
@@ -197,7 +202,7 @@ Follow `DESIGN.md` exactly.
 
 **Exit check:** `DESIGN.md` §12 "Definition of done", at 360px.
 
-## Phase 6 — Deploy
+## Phase 6 — Deploy ⏭ next
 
 - Vercel Hobby, env vars set, check function size with `network.json` included.
 - README: screenshots, architecture diagram, limitations, data credits.

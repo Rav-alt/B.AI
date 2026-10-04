@@ -1,26 +1,186 @@
+/* B.AI theme. Colors, radii and fonts come from DESIGN.md §3–4; don't add colors here without
+   updating DESIGN.md. Light mode only. No gradients, shadows or blur anywhere. */
 @import "tailwindcss";
+@import "tw-animate-css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ---- Brand tokens ---- */
+  --ink: #111613;
+  --paper: #ffffff;
+  --surface: #f1f3f2;
+  --line: #d5dad7;
+  --line-soft: #e3e6e4;
+  --text-2: #3d4440;
+  --text-muted: #5b625e;
+  --signboard: #ffd23f;
+  --paalala: #fff4c2;
+  --paalala-line: #e5cf6b;
+  --focus: #2453d6;
+  --error: #b42318;
+
+  --mode-train: #2453d6;
+  --mode-bus: #c2410c;
+  --mode-jeep: #0b7a55;
+  --mode-uv: #7b3fc4;
+  --mode-walk: #6b716e;
+
+  --map-ground: #eef1ef;
+  --map-water: #c9d8e2;
+
+  /* ---- shadcn variables → brand ---- */
+  --radius: 0.625rem;
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: var(--paper);
+  --secondary: var(--surface);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface);
+  --muted-foreground: var(--text-muted);
+  --accent: var(--surface);
+  --accent-foreground: var(--ink);
+  --destructive: var(--error);
+  --border: var(--line);
+  --input: var(--ink);
+  --ring: var(--focus);
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, monospace;
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-text-2: var(--text-2);
+  --color-signboard: var(--signboard);
+  --color-paalala: var(--paalala);
+  --color-paalala-line: var(--paalala-line);
+  --color-error: var(--error);
+  --color-mode-train: var(--mode-train);
+  --color-mode-bus: var(--mode-bus);
+  --color-mode-jeep: var(--mode-jeep);
+  --color-mode-uv: var(--mode-uv);
+  --color-mode-walk: var(--mode-walk);
+  --color-map-ground: var(--map-ground);
+
+  --radius-placard: 4px;
+  --radius-sm: 8px;
+  --radius-md: var(--radius);
+  --radius-lg: 14px;
+
+  --font-sans: var(--font-archivo), sans-serif;
+  --font-mono: var(--font-plex-mono), monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Archivo 800 at 75% width: headlines, the logo and every signboard. */
+@utility font-display {
+  font-family: var(--font-archivo), sans-serif;
+  font-weight: 800;
+  font-stretch: 75%;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  html,
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+  body {
+    font-family: var(--font-archivo), sans-serif;
+    font-size: 15px;
+    line-height: 1.45;
+  }
+  /* One solid focus ring everywhere (DESIGN.md §11). Never remove outlines. */
+  :focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0s !important;
+      animation-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---- Leaflet, restyled flat (DESIGN.md §6 Map card) ----
+   Leaflet's own CSS loads after this file, so selectors start with .leaflet-container to win. */
+.leaflet-container {
+  background: var(--map-ground);
+  font-family: var(--font-archivo), sans-serif;
+}
+.leaflet-container .leaflet-bar,
+.leaflet-container.leaflet-touch .leaflet-bar {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: none;
+  background-clip: border-box;
+  overflow: hidden;
+}
+.leaflet-container .leaflet-bar a,
+.leaflet-container.leaflet-touch .leaflet-bar a {
+  width: 44px;
+  height: 44px;
+  line-height: 44px;
+  color: var(--ink);
+  border-bottom-color: var(--line);
+  border-radius: 0;
+}
+.leaflet-container .leaflet-bar a:hover {
+  background: var(--surface);
+}
+.leaflet-container .leaflet-control-attribution {
+  font-size: 11px;
+  color: var(--text-2);
+  background: var(--paper);
+}
+.leaflet-container .leaflet-control-attribution a {
+  color: var(--ink);
+}
+.bai-pin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  font: 800 11px/1 var(--font-archivo), sans-serif;
+}
+.bai-pin-a {
+  background: var(--paper);
+  color: var(--ink);
+  border: 3px solid var(--ink);
+}
+.bai-pin-b {
+  background: var(--ink);
+  color: var(--paper);
 }

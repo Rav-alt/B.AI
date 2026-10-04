@@ -1,7 +1,7 @@
 // Plain-text answers written by code, not AI. Used when Gemini is off, busy or wrong, and for the
 // short replies (questions back, off-topic) that don't need AI at all.
 import type { CheckReason, CheckResult, GeoPlace, Itinerary, Lang, PlanResult } from "@/lib/types";
-import { minutes, modeWord, shortStop, walkDistance } from "./format";
+import { minutes, modeWord, shortMinutes, shortStop, walkDistance } from "./format";
 
 const b = (s: string) => `**${s}**`;
 
@@ -61,28 +61,35 @@ export function planText(plan: PlanResult, origin: GeoPlace, destination: GeoPla
   return lines.join("\n");
 }
 
-function reasonText(r: CheckReason, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
+/** The sentence on a verdict card (the OO / HINDI pill says yes or no). */
+export function verdictSentence(r: CheckReason, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
   const o = origin.name;
   const d = destination.name;
   const fil: Record<CheckReason, string> = {
-    passes_both: `oo, dumadaan malapit sa ${o} at umaabot sa ${d}.`,
-    wrong_direction: `hindi, kabilang direksyon ang punta niyan.`,
-    ride_too_short: `hindi na sulit, mas malapit lang kung lalakarin.`,
-    origin_only: `hindi, dumadaan malapit sa ${o} pero hindi umaabot sa ${d}.`,
-    destination_only: `hindi, umaabot sa ${d} pero hindi dumadaan malapit sa ${o}.`,
-    passes_neither: `hindi, hindi dumadaan malapit sa ${o} o sa ${d}.`,
-    no_such_route: `wala akong ganyang ruta sa data namin.`,
+    passes_both: `Dumadaan malapit sa ${o} at umaabot sa ${d}.`,
+    wrong_direction: `Kabilang direksyon ang punta niyan.`,
+    ride_too_short: `Masyadong maikli ang sakay, mas mabilis pang maglakad.`,
+    origin_only: `Dumadaan malapit sa ${o} pero hindi umaabot sa ${d}.`,
+    destination_only: `Umaabot sa ${d} pero hindi dumadaan malapit sa ${o}.`,
+    passes_neither: `Hindi dumadaan malapit sa ${o} o sa ${d}.`,
+    no_such_route: `Wala akong ganyang ruta sa data namin.`,
   };
   const en: Record<CheckReason, string> = {
-    passes_both: `yes, it passes near ${o} and reaches ${d}.`,
-    wrong_direction: `no, that one goes the other way.`,
-    ride_too_short: `no, the ride would be too short to be worth it; walking is about as quick.`,
-    origin_only: `no, it passes near ${o} but doesn't reach ${d}.`,
-    destination_only: `no, it reaches ${d} but doesn't pass near ${o}.`,
-    passes_neither: `no, it doesn't pass near ${o} or ${d}.`,
+    passes_both: `It passes near ${o} and reaches ${d}.`,
+    wrong_direction: `That one goes the other way.`,
+    ride_too_short: `The ride would be too short; walking is about as quick.`,
+    origin_only: `It passes near ${o} but doesn't reach ${d}.`,
+    destination_only: `It reaches ${d} but doesn't pass near ${o}.`,
+    passes_neither: `It doesn't pass near ${o} or ${d}.`,
     no_such_route: `I don't have a route with that signboard in our data.`,
   };
   return (lang === "en" ? en : fil)[r];
+}
+
+function reasonText(r: CheckReason, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
+  const yesNo = r === "passes_both" ? (lang === "en" ? "yes" : "oo") : lang === "en" ? "no" : "hindi";
+  const sentence = verdictSentence(r, origin, destination, lang);
+  return `${yesNo}, ${sentence.charAt(0).toLowerCase()}${sentence.slice(1)}`;
 }
 
 export function checkText(check: CheckResult, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
@@ -151,3 +158,40 @@ export const fallbackFormText = (lang: Lang) =>
   lang === "en"
     ? "My AI helper is busy right now. Type where you're starting from and where you're going in the boxes below, and I'll still find you a route."
     : "Medyo busy ang AI ko ngayon. Ilagay mo na lang kung saan ka manggagaling at saan ka papunta sa mga box sa ibaba, hahanapan pa rin kita ng ruta.";
+
+/** "walang transfer" / "isang transfer" / "no transfers". */
+export function transfersText(n: number, lang: Lang): string {
+  if (lang === "en") return n === 0 ? "no transfers" : n === 1 ? "1 transfer" : `${n} transfers`;
+  return n === 0 ? "walang transfer" : n === 1 ? "isang transfer" : `${n} transfer`;
+}
+
+/** The one-line lead above the steps (template version; Gemini writes its own). */
+export function planLead(plan: PlanResult, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
+  const best = plan.itineraries[0];
+  if (plan.status !== "ok" || !best) return noRouteText(plan, origin, destination, lang);
+  if (best.legs.every((l) => l.mode === "walk")) {
+    return lang === "en"
+      ? `It's close: just walk, ${minutes(best.totalMinutes, lang)}.`
+      : `Malapit lang: lakarin mo na, ${minutes(best.totalMinutes, lang)}.`;
+  }
+  const time = b(shortMinutes(best.totalMinutes));
+  return lang === "en"
+    ? `Easiest way: about ${time}, ${transfersText(best.transfers, lang)}.`
+    : `Ito ang pinakamadali: mga ${time}, ${transfersText(best.transfers, lang)}.`;
+}
+
+/** The conclusion line under the verdict cards (template version). */
+export function checkLead(check: CheckResult, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
+  const yes = check.verdicts.find((v) => v.verdict === "yes" && v.itinerary);
+  const ride = yes?.itinerary?.legs.find((l): l is Exclude<typeof l, { mode: "walk" }> => l.mode !== "walk");
+  if (ride) {
+    const what = ride.mode === "train" ? b(ride.line ?? ride.routeName) : `${modeWord(ride.mode, lang)} na ${b(ride.routeName)}`;
+    return lang === "en"
+      ? `So: take the ${ride.mode === "train" ? b(ride.line ?? ride.routeName) : `${modeWord(ride.mode, lang)} ${b(ride.routeName)}`}.`
+      : `Kaya: sumakay ka ng ${what}.`;
+  }
+  if (check.alternative?.status === "ok") {
+    return lang === "en" ? "None of those will get you there. Here's another way:" : "Wala sa mga 'yan ang aabot. Ito ang pwede:";
+  }
+  return check.alternative ? noRouteText(check.alternative, origin, destination, lang) : planLead({ status: "no_route", itineraries: [], walkRadiusM: 600 }, origin, destination, lang);
+}

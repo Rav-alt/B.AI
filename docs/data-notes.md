@@ -284,6 +284,9 @@ Signboard matching ignores accents and one typo, and treats "SM", "City", "Ave"â
   template replies, 0 thinking tokens, correct language, check_routes answered per vehicle. 3.8-flash's 20 RPD
   makes it a poor main model on the free tier.
 - `/api/chat` limits each visitor to 10 questions/minute (in memory, per instance).
+- **Phase 5 change:** for route/check answers Gemini now writes only the one-line lead (or the "Kaya: â€¦"
+  conclusion); the UI draws the steps from the route data. The name check still applies (no unknown route,
+  and the lead must name a ride of the best option).
 
 ## Gemini free tier
 

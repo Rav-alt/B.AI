@@ -14,7 +14,7 @@ import { DISCLAIMER, detectLang } from "./format";
 import { simpleParse } from "./simple-parse";
 import { checkAnswerNames } from "./name-check";
 import {
-  askPlaceText, checkText, fallbackFormText, needLocationText, needMoreInfoText, offTopicText, placeNotFoundText, planText,
+  askPlaceText, checkLead, fallbackFormText, needLocationText, needMoreInfoText, offTopicText, placeNotFoundText, planLead,
 } from "./templates";
 
 export interface ChatDeps {
@@ -30,7 +30,7 @@ export interface ChatDeps {
 type FallbackReason = NonNullable<ChatResponse["fallbackReason"]>;
 
 /** The request in human words, for the AI answer and for logging. */
-const questionOf = (req: ChatRequest) => req.message ?? `${req.from} → ${req.to}`;
+const questionOf = (req: ChatRequest) => req.message ?? `${req.from ?? "my location"} → ${req.to}`;
 
 type Resolved = { ok: true; place: GeoPlace } | { ok: false; response: Omit<ChatResponse, "writer" | "lang"> };
 
@@ -79,8 +79,9 @@ export async function handleChat(req: ChatRequest, deps: ChatDeps): Promise<Chat
 
   // 1. What is being asked?
   let intent: Intent | undefined;
-  if (req.from && req.to) {
-    intent = { type: "plan_trip", origin: { text: req.from }, destination: { text: req.to }, prefs: {} };
+  if ((req.from || req.fromCurrentLocation) && req.to) {
+    const origin: PlaceQuery = req.fromCurrentLocation || !req.from ? { useCurrentLocation: true } : { text: req.from };
+    intent = { type: "plan_trip", origin, destination: { text: req.to }, prefs: req.prefs ?? {} };
   } else if (req.message) {
     if (deps.ai) {
       try {
@@ -116,8 +117,8 @@ export async function handleChat(req: ChatRequest, deps: ChatDeps): Promise<Chat
       : { plan: planTrip(deps.net, origin, destination, intent.prefs) };
   const kind: ChatResponse["kind"] = result.check ? "check" : result.plan.status === "ok" ? "route" : "no_route";
   const template = result.check
-    ? checkText(result.check, origin, destination, lang)
-    : planText(result.plan, origin, destination, lang);
+    ? checkLead(result.check, origin, destination, lang)
+    : planLead(result.plan, origin, destination, lang);
   const base = { kind, origin, destination, ...result, disclaimer: DISCLAIMER[lang] };
 
   // 4. Words: Gemini if available and it behaves, else the template.

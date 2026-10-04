@@ -8,6 +8,7 @@ import { getNominatim } from "@/lib/geo/nominatim";
 import { DEFAULT_FALLBACK_MODEL, DEFAULT_MODEL, getAiClient } from "@/lib/ai/gemini";
 import { handleChat } from "@/lib/chat/pipeline";
 import { ChatRequestSchema } from "@/lib/types";
+import { checkText, planText } from "@/lib/chat/templates";
 
 try {
   process.loadEnvFile(".env.local");
@@ -58,6 +59,9 @@ async function main() {
     for (const e of errors) console.log(e);
     console.log(`[${r.kind} · ${r.writer}${r.fallbackReason ? ` (${r.fallbackReason})` : ""} · ${Date.now() - t0} ms]`);
     console.log(r.text);
+    // The UI draws the steps from the data; print them as text here.
+    if (r.plan?.status === "ok" && r.origin && r.destination) console.log(`\n${planText(r.plan, r.origin, r.destination, r.lang)}`);
+    if (r.check && r.origin && r.destination) console.log(`\n${checkText(r.check, r.origin, r.destination, r.lang)}`);
     if (r.disclaimer) console.log(`\n${r.disclaimer}`);
     console.log("");
   }

@@ -146,18 +146,21 @@ Router code is pure functions with unit tests. No network calls, no AI.
 
 ### [4] Answer writing
 
-Gemini receives the router JSON and writes the reply. System prompt rules:
+Gemini receives the router JSON and writes the short message above the answer. The UI draws the
+numbered steps (badges, signboard placards, "Baba sa …", times), the yes/no card per candidate, the map
+and the disclaimer from the router data (`DESIGN.md` §6). System prompt rules:
 - Use only the routes, stops, and names in the provided JSON. Never add a route, stop, or landmark that isn't there.
-- Format: numbered steps, signboard names in bold, "baba sa …" for where to get off, an approximate total time.
-- For `check_routes`: answer each candidate directly first ("Fairview bus: oo, dumadaan sa España…" / "Divisoria jeep: hindi…").
-- If the router found nothing: say so honestly and suggest asking a barker or nearby commuters.
-- Append the standard disclaimer.
+- `plan_trip`: one or two sentences: easiest option, approximate total time, transfers, first signboard in bold.
+- `check_routes`: one conclusion line ("Kaya: sumakay ka ng bus na **Baclaran – SM Fairview**."), or that none works and an alternative is shown.
+- If the router found nothing: say so honestly and suggest asking a barker or nearby commuters (template, no AI call).
+- The disclaimer is a separate response field the UI always shows.
+- The text is checked: it may not name a route the router didn't return (else the template is used).
 
 **Fallback:** if Gemini fails or hits the rate limit (HTTP 429), the app still works. Show "From / To" input boxes, skip parsing, and render the router result with a plain text template. Routing never depends on AI.
 
 ## UI
 
-**Before any UI work, read `DESIGN.md`** (flat signboard design, colors, shadcn/ui and Motion rules). The summary below is the feature list; `DESIGN.md` says how it must look.
+**Before any UI work, read `DESIGN.md`** (flat signboard design, colors, shadcn/ui and Motion rules; §14 maps the rules to the code). The summary below is the feature list; `DESIGN.md` says how it must look.
 
 - One-page, mobile-first chat (works well at 360 px width).
 - Each route answer = a chat bubble plus a map card below it (tap to expand full screen).
@@ -201,14 +204,17 @@ Every entry has a `source` and `updated` date field.
   api/chat/route.ts        # pipeline endpoint
 /components
   ui/                      # shadcn/ui components (owned and restyled by us)
-  Chat, MessageBubble, RouteAnswer, VerdictCard, RouteMap,
-  Signboard, ModeBadge, StarterChips, Disclaimer, Logo
+  Chat, Messages, RoutePlan, RouteSteps, CheckAnswer, MapCard, RouteMap,
+  FallbackForm, InputBar, Welcome, Signboard, ModeBadge, Disclaimer, Logo, Header
 /lib
   ai/                      # gemini client, parseIntent, writeAnswer, prompts
   data/                    # build-time: csv parser, mode mapping, name cleanup, directions, corrections schema, buildNetwork()
   geo/                     # geocode, nominatim client (throttled + cached), haversine
   router/                  # network loader (network.ts), planTrip, checkRoutes, scoring
-  motion.ts                # shared animation presets (DESIGN.md §9)
+  chat/                    # pipeline, templates, simple parser, answer name check, rate limit
+  ui/                      # pure view helpers (route-view.ts) + use-location hook
+  text.ts                  # shared text normalising / fuzzy word matching
+  motion.ts                # shared animation presets (DESIGN.md §10)
   utils.ts                 # shadcn cn() helper
   types.ts
 /data
@@ -258,7 +264,7 @@ Real values go in `.env.local` only (git-ignored). `.env.example` stays empty.
 2. **Router** ✅: `planTrip` and `checkRoutes` with tests.
 3. **Geocoding** ✅: landmarks plus throttled, cached Nominatim.
 4. **AI layer** ✅: intent parsing and answer writing, with the no-AI fallback.
-5. **UI**: shadcn/ui init + theme from `DESIGN.md`, then chat, map card, location button, disclaimer, footer, then Motion polish.
+5. **UI** ✅: shadcn/ui init + theme from `DESIGN.md`, then chat, map card, location button, disclaimer, footer, then Motion polish.
 6. **Deploy**: Vercel; a README with screenshots, architecture, limitations, and data credits.
 
 ## Acceptance tests

@@ -6,7 +6,7 @@ import { loadLandmarks } from "@/lib/geo/landmarks";
 import { handleChat, type ChatDeps } from "@/lib/chat/pipeline";
 import { simpleParse } from "@/lib/chat/simple-parse";
 import { checkAnswerNames } from "@/lib/chat/name-check";
-import { planText } from "@/lib/chat/templates";
+import { checkText, planLead, planText } from "@/lib/chat/templates";
 import { createRateLimiter } from "@/lib/chat/ratelimit";
 import { AiUnavailable, type AiClient } from "@/lib/ai/gemini";
 import { ChatRequestSchema, ChatResponseSchema, type ChatRequestInput, type Intent, type Lang } from "@/lib/types";
@@ -52,11 +52,13 @@ describe("acceptance tests (CLAUDE.md)", () => {
     const r = await ask({ message: "Galing Pedro Gil Taft papuntang España, bus papuntang SM Fairview o jeep papuntang Divisoria?" }, fakeAi(intent, () => "x"));
     expect(r.kind).toBe("check");
     expect(r.check!.verdicts.map((v) => v.verdict)).toEqual(["yes", "no"]);
-    // the fake AI wrote nonsense ("x") → rejected → template answers each candidate
+    // the fake AI wrote nonsense ("x") → rejected → template conclusion line
     expect(r.writer).toBe("template");
     expect(r.fallbackReason).toBe("answer_rejected");
-    expect(r.text).toMatch(/bus \*\*SM Fairview\*\*: oo/);
-    expect(r.text).toMatch(/jeep \*\*Divisoria\*\*: hindi/);
+    expect(r.text).toBe("Kaya: sumakay ka ng bus na **Baclaran – SM Fairview**.");
+    // the per-vehicle sentences (shown on the verdict cards) come from the data
+    expect(checkText(r.check!, r.origin!, r.destination!, "fil")).toMatch(/bus \*\*SM Fairview\*\*: oo/);
+    expect(checkText(r.check!, r.origin!, r.destination!, "fil")).toMatch(/jeep \*\*Divisoria\*\*: hindi/);
   });
 
   it("2b. neither candidate works → an alternative is suggested", async () => {
@@ -66,7 +68,7 @@ describe("acceptance tests (CLAUDE.md)", () => {
     };
     const r = await ask({ message: "jeep papuntang Divisoria?" }, fakeAi(intent, () => "x"));
     expect(r.check!.alternative?.status).toBe("ok");
-    expect(r.text).toContain("Subukan ito:");
+    expect(r.text).toBe("Wala sa mga 'yan ang aabot. Ito ang pwede:");
   });
 
   it("4. missing destination → B.AI asks for it (no second AI call)", async () => {
@@ -104,6 +106,22 @@ describe("acceptance tests (CLAUDE.md)", () => {
   });
 });
 
+describe("lead line and form extras", () => {
+  it("the template lead is one line with time and transfers", async () => {
+    const r = await ask({ from: "Pedro Gil Taft", to: "España" }, null);
+    expect(r.text).toMatch(/^Ito ang pinakamadali: mga \*\*\d+ min\*\*, walang transfer\.$/);
+    expect(r.text).toBe(planLead(r.plan!, r.origin!, r.destination!, "fil"));
+  });
+
+  it("the From/To form passes preferences and 'from my location'", async () => {
+    const trains = await ask({ from: "Cubao", to: "Ayala", prefs: { trainsOnly: true } }, null);
+    expect(trains.plan!.itineraries.every((it) => it.legs.every((l) => l.mode === "walk" || l.mode === "train"))).toBe(true);
+    const here = await ask({ fromCurrentLocation: true, to: "UST", location: { lat: 14.5766, lon: 120.9881 } }, null);
+    expect(here.kind).toBe("route");
+    expect(here.origin!.source).toBe("device");
+  });
+});
+
 describe("places in the conversation", () => {
   it("an ambiguous place returns choices, and the picked one completes the trip", async () => {
     const ai = fakeAi(plan("Buendia", "UST"));
@@ -135,7 +153,8 @@ describe("places in the conversation", () => {
     const r = await ask({ message: "How do I get from Cubao to Ayala?" }, null);
     expect(r.kind).toBe("route");
     expect(r.lang).toBe("en");
-    expect(r.text).toMatch(/^From \*\*Cubao\*\* to \*\*Ayala Center\*\*/);
+    expect(r.text).toMatch(/^Easiest way: about \*\*\d+ min\*\*, no transfers\.$/);
+    expect(r.destination!.name).toBe("Ayala Center");
     expect(r.disclaimer).toBe(DISCLAIMER.en);
   });
 });

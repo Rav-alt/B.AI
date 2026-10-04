@@ -36,7 +36,7 @@ export function allowedNames(r: { plan?: PlanResult; check?: CheckResult }): str
   return out;
 }
 
-/** Names the answer must contain: the rides of the best option (a train leg may be named by its line). */
+/** Ride names of the best option; the answer must name at least one (a train may be named by its line). */
 export function requiredRides(r: { plan?: PlanResult; check?: CheckResult }): string[][] {
   const yes = r.check?.verdicts.find((v) => v.itinerary)?.itinerary;
   const best = r.plan?.itineraries[0] ?? yes ?? r.check?.alternative?.itineraries[0];
@@ -47,7 +47,7 @@ export interface NameCheck {
   ok: boolean;
   /** Route names in the text that the router didn't return. */
   unknown: string[];
-  /** Rides of the best option that the text left out. */
+  /** Set when the text names none of the best option's rides (lists them). */
   missing: string[];
 }
 
@@ -58,8 +58,8 @@ export function checkAnswerNames(text: string, net: Network, r: { plan?: PlanRes
   let rest = body;
   for (const a of [...allowed].sort((x, y) => y.length - x.length)) rest = rest.split(` ${a} `).join("  |  ");
   const unknown = networkNames(net).filter((n) => rest.includes(` ${n} `) && !allowed.includes(n));
-  const missing = requiredRides(r)
-    .filter((alts) => !alts.some((a) => body.includes(pad(a))))
-    .map((alts) => alts[0]!);
+  const rides = requiredRides(r);
+  const namesOne = rides.length === 0 || rides.some((alts) => alts.some((a) => body.includes(pad(a))));
+  const missing = namesOne ? [] : rides.map((alts) => alts[0]!);
   return { ok: unknown.length === 0 && missing.length === 0, unknown, missing };
 }

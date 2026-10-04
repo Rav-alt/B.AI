@@ -306,9 +306,11 @@ export const ChatRequestSchema = z
   .object({
     /** Free-text question. Either this or from + to. */
     message: z.string().trim().min(1).max(500).optional(),
-    /** Fallback form (no AI): plain place names. */
+    /** Fallback form (no AI): plain place names, preferences, and "from my location". */
     from: z.string().trim().min(1).max(200).optional(),
     to: z.string().trim().min(1).max(200).optional(),
+    prefs: PrefsSchema.optional(),
+    fromCurrentLocation: z.boolean().optional(),
     /** Recent turns, oldest first, so "España" can answer "Saan ka papunta?". */
     history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(1000) })).max(6).default([]),
     /** Browser location, only when the user tapped "use my location". Never stored. */
@@ -316,7 +318,7 @@ export const ChatRequestSchema = z
     /** A place the user picked from "Alin dito?" choices, sent back with the same question. */
     picked: z.object({ origin: PickedPlaceSchema.optional(), destination: PickedPlaceSchema.optional() }).default({}),
   })
-  .refine((r) => r.message || (r.from && r.to), { message: "send a message, or both from and to" });
+  .refine((r) => r.message || ((r.from || r.fromCurrentLocation) && r.to), { message: "send a message, or both from and to" });
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 export type ChatRequestInput = z.input<typeof ChatRequestSchema>;
 
@@ -335,7 +337,10 @@ export type ChatKind = z.infer<typeof ChatKindSchema>;
 
 export const ChatResponseSchema = z.object({
   kind: ChatKindSchema,
-  /** Reply text. Markdown-light: **bold** signboards, numbered steps. */
+  /**
+   * Reply text, markdown-light (**bold**). For route/check answers this is the short lead line shown
+   * above the step list ("Ito ang pinakamadali: mga **22 min**…"); the steps come from `plan`/`check`.
+   */
   text: z.string().min(1),
   lang: LangSchema,
   origin: GeoPlaceSchema.optional(),

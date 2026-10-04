@@ -13,6 +13,15 @@ export function walkDistance(m: number): string {
   return `${(Math.round(m / 100) / 10).toFixed(1)} km`;
 }
 
+/** Rounded, compact time for leads and meta lines: "25 min", "1 hr 15 min". */
+export function shortMinutes(n: number): string {
+  const m = Math.max(1, Math.round(n / 5) * 5 || Math.round(n));
+  if (m < 60) return `${m} min`;
+  const h = Math.floor(m / 60);
+  const r = m % 60;
+  return `${h} hr${r ? ` ${r} min` : ""}`;
+}
+
 /** "mga 25 minuto" / "about 25 min"; long trips in hours. */
 export function minutes(n: number, lang: Lang): string {
   const m = Math.max(1, Math.round(n / 5) * 5 || Math.round(n));
