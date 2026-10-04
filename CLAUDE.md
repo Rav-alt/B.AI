@@ -69,7 +69,7 @@ This is a **personal portfolio project**. It must run entirely on **free tiers**
 | Animation | Motion for React (`motion` package, `motion/react`), loaded with `LazyMotion` + `domAnimation` and the slim `m` components. `tw-animate-css` for shadcn's built-in enter/exit animations |
 | Fonts | Archivo (with width axis) + IBM Plex Mono via `next/font/google` |
 | Map | Leaflet + react-leaflet with OpenStreetMap tiles (load client-only via `dynamic(..., { ssr: false })`) |
-| AI | Google Gemini Flash via Google AI Studio free tier, using the `@google/genai` SDK. Model ID comes from env `GEMINI_MODEL` (currently `gemini-3.8-flash`, see `docs/data-notes.md`). |
+| AI | Google Gemini Flash via Google AI Studio free tier, using the `@google/genai` SDK. Model ID comes from env `GEMINI_MODEL` (currently `gemini-3.5-flash-lite`, backup `GEMINI_FALLBACK_MODEL` = `gemini-3.8-flash`; see `docs/data-notes.md`). |
 | Geocoding | Local landmark/stop list first, then Nominatim (OpenStreetMap) as fallback |
 | Route data | `sakayph/gtfs` (GTFS feed for Metro Manila) converted to compact JSON at build time, plus a hand-maintained corrections file |
 | Validation | zod |
@@ -233,7 +233,8 @@ PLAN.md                    # build order + current status
 
 ```
 GEMINI_API_KEY=        # Google AI Studio key (server-side only, never exposed to the client)
-GEMINI_MODEL=          # current free-tier Flash model ID
+GEMINI_MODEL=          # main model (default gemini-3.5-flash-lite)
+GEMINI_FALLBACK_MODEL= # backup on 429/503/timeout (default gemini-3.8-flash; "none" = off)
 NOMINATIM_CONTACT=     # email for the Nominatim User-Agent
 ```
 
@@ -256,7 +257,7 @@ Real values go in `.env.local` only (git-ignored). `.env.example` stays empty.
 1. **Data** ✅: `scripts/build-data.ts` reads the `sakayph/gtfs` files and outputs `network.json`, merged with `corrections.json`. Log route/stop counts.
 2. **Router** ✅: `planTrip` and `checkRoutes` with tests.
 3. **Geocoding** ✅: landmarks plus throttled, cached Nominatim.
-4. **AI layer**: intent parsing and answer writing, with the no-AI fallback.
+4. **AI layer** ✅: intent parsing and answer writing, with the no-AI fallback.
 5. **UI**: shadcn/ui init + theme from `DESIGN.md`, then chat, map card, location button, disclaimer, footer, then Motion polish.
 6. **Deploy**: Vercel; a README with screenshots, architecture, limitations, and data credits.
 

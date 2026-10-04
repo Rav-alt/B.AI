@@ -12,7 +12,8 @@
     "build:data": "tsx scripts/build-data.ts",
     "inspect:gtfs": "tsx scripts/inspect-gtfs.ts",
     "test:gemini": "tsx scripts/test-gemini.ts",
-    "try:router": "tsx scripts/try-router.ts"
+    "try:router": "tsx scripts/try-router.ts",
+    "try:chat": "tsx scripts/try-chat.ts"
   },
   "dependencies": {
     "@google/genai": "^2.27.0",

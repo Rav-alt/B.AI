@@ -12,8 +12,8 @@
 > **Every agent:** update this block at the end of any task that finishes a step or changes what
 > comes next. Keep it short; details go in `docs/learning-log/`.
 
-**Last updated:** 2026-10-05 00:50 (Asia/Manila)
-**Current phase:** Phase 3 done. **Next: Phase 4 — AI layer and API** (Phase 5 static UI can start in parallel).
+**Last updated:** 2026-10-05 01:30 (Asia/Manila)
+**Current phase:** Phase 4 done. **Next: Phase 5 — UI.** First, run `npm run try:chat` once with the real Gemini key.
 **Repo:** https://github.com/Rav-alt/B.AI (branch `main`) · local copy: `C:\Projects\B.AI`
 
 ### Done
@@ -26,10 +26,16 @@
 - ✅ **Phase 3** — `geocodeText()` / `placeFromCoords()` in `lib/geo/`: 36 sourced landmarks + station/stop names first,
   then Nominatim (1 req/s, User-Agent, cache; mocked in tests). Ambiguous names return choices. Landmarks also feed
   `build-data` (known directions 1,361 → 1,395). 85 tests pass. Details: `docs/data-notes.md` → "Phase 3 results".
+- ✅ **Phase 4** — `POST /api/chat` (`app/api/chat/route.ts` → `lib/chat/pipeline.ts`): Gemini parses + words the answer,
+  router decides, AI text checked against router names, templates + simple parser when AI is off/429. 116 tests pass.
+  Try it: `npm run try:chat -- "Pedro Gil Taft to España"`. Details: `docs/data-notes.md` → "Phase 4 results".
 
 ### Open items
-- [ ] Copy the free-tier RPM / TPM / RPD for `gemini-3.8-flash` from https://aistudio.google.com/rate-limit
-      into the table in `docs/data-notes.md`. Only needed by Phase 4.
+- [x] Real Gemini run on the owner's PC (2026-10-05): works via the backup model. Found: `gemini-3.8-flash` free tier =
+      **20 requests/day** (~10 questions), often 503, refuses MINIMAL thinking. Client now steps thinking down, switches
+      to `gemini-3.5-flash-lite` on 429/503/timeout and waits for the quota reset. See `docs/data-notes.md`.
+- [x] Model choice: main `gemini-3.5-flash-lite` (fast, ~2–3 s per answer), backup `gemini-3.8-flash`. Now the defaults.
+- [ ] **Owner:** copy flash-lite's free-tier RPM / RPD from https://aistudio.google.com/rate-limit into `docs/data-notes.md`.
 - [ ] Workflow: the cloud agent **can't push** to the repo (the Claude GitHub App isn't installed for it), so for
       now work is copied into `C:\Projects\B.AI` and the owner commits and pushes. To let agents push to a
       branch instead, install the app: https://github.com/apps/claude/installations/select_target
@@ -40,7 +46,7 @@
 - **Stack as installed:** Next.js **16.3** (read `AGENTS.md`: APIs differ from older Next), React 19, Tailwind v4,
   TypeScript strict + `noUncheckedIndexedAccess`, vitest 5, tsx, zod 4, `@google/genai` 2.x. Node ≥ 22.
   Run `npm run build` once before `npx tsc --noEmit` (Next generates the `LayoutProps` type).
-- **npm scripts:** `dev`, `build`, `test`, `lint`, `build:data`, `inspect:gtfs`, `test:gemini`, `try:router`.
+- **npm scripts:** `dev`, `build`, `test`, `lint`, `build:data`, `inspect:gtfs`, `test:gemini`, `try:router`, `try:chat`.
 - **Data in:** the GTFS feed goes in `data/raw/` (git-ignored): `git clone --depth 1 https://github.com/sakayph/gtfs data/raw`.
   Fixes go in `data/corrections.json` (validated by `lib/data/corrections.ts`; every entry needs `source` + `updated`).
 - **Data out:** `data/generated/network.json` is committed. Types in `lib/types.ts` (`Network`, `Pattern`, `Stop`,
@@ -49,7 +55,8 @@
   `dist` = cumulative metres. `shape`/`shapeIdx` only on 8 patterns, otherwise draw stop to stop.
   `towards` (which end it heads to) is known for 80% of road patterns; **handle it missing**.
 - **Acceptance data:** Pedro Gil Taft → España has ≥10 direct forward patterns (test in `tests/network.test.ts`).
-- **Gemini:** `gemini-3.8-flash`, free tier. Thinking is on by default, so Phase 4 must set a low/zero thinking budget.
+- **Gemini:** main `gemini-3.5-flash-lite`, backup `gemini-3.8-flash` (only 20 requests/day). Thinking is stepped down
+  automatically; quota/overload switches to the backup. Details in `docs/data-notes.md` → "Phase 4 results".
 - **Secrets:** the API key lives only in `.env.local` (git-ignored). `.env.example` keeps **empty** values.
   Never commit a key or click "allow secret".
 
@@ -66,14 +73,23 @@
 - `placeFromCoords(lat, lon)` for "use my location" (never store it).
 - A `GeoPlace` is a `PlaceRef`, so it goes straight into `planTrip` / `checkRoutes`.
 
-### Next steps (Phase 4 — AI layer and API)
-1. `lib/ai/gemini.ts`: client from `GEMINI_API_KEY` / `GEMINI_MODEL`, low/zero thinking budget, 429 → typed error.
-2. `parseIntent()`: JSON schema mode, validated with zod into the `Intent` type from `CLAUDE.md` (add it to `lib/types.ts`).
-3. `writeAnswer()`: router JSON only; prompt rules from `CLAUDE.md` §[4]; ambiguous places → "Alin dito?";
-   city-sized names (5 street choices) → ask for a landmark instead.
-4. Plain-text template answer (no AI) for the fallback, and `app/api/chat/route.ts` wiring it all (read `AGENTS.md` first).
-5. Tests: name check (answer mentions no route missing from the router result), off-topic, missing destination,
-   fallback with no key. Fill the Gemini RPM/RPD table in `docs/data-notes.md`.
+### Chat API (for Phase 5)
+- `POST /api/chat` body: `{ message }` or `{ from, to }`, plus optional `history` (last ≤ 6 turns), `location`
+  (only after "use my location"), `picked: { origin?, destination? }` (a choice from `ask_place`). Schema: `ChatRequestSchema`.
+- Response `ChatResponse`: `kind` (route · check · no_route · ask_place · place_not_found · need_more_info ·
+  need_location · off_topic · fallback_form), `text` (**bold** + numbered steps), `lang`, `origin`/`destination`,
+  `plan` or `check` (legs with polylines for the map), `choices`, `disclaimer`, `writer` (ai | template), `fallbackReason`.
+- `fallback_form` → show the From/To boxes. `ask_place` → show `choices` as buttons, resend with `picked`.
+- HTTP 429 `{ error: "rate_limited" }` when a visitor sends > 10/min; 400 on a bad body.
+
+### Next steps (Phase 5 — UI, follow `DESIGN.md` exactly)
+1. shadcn init + theme tokens + fonts + `Providers` (read `DESIGN.md` and `AGENTS.md` first).
+2. Static pieces: Logo, Signboard, ModeBadge, Disclaimer, header, footer, input bar.
+3. Welcome screen, trip answer, check-routes verdicts — use saved `/api/chat` responses as fixtures first
+   (`npm run try:chat` output, or `curl` the endpoint).
+4. Map card + full-screen dialog (Leaflet, client-only).
+5. Hook up `/api/chat`, location button, From/To fallback, place choices.
+6. Motion polish (allow-list only).
 
 ---
 
@@ -159,7 +175,7 @@ Pure TypeScript in `lib/router/`, test-first.
 
 **Exit check:** tests for exact, fuzzy, ambiguous, and not-found inputs (Nominatim mocked in tests).
 
-## Phase 4 — AI layer and API ⏭ next
+## Phase 4 — AI layer and API ✅ done 2026-10-05
 
 - `parseIntent()` with JSON schema mode + zod; `writeAnswer()` from router JSON only.
 - Set a low/zero thinking budget on both calls (see `docs/data-notes.md` → Gemini free tier).
@@ -169,7 +185,7 @@ Pure TypeScript in `lib/router/`, test-first.
 
 **Exit check:** all acceptance tests in `CLAUDE.md` that don't need a browser pass.
 
-## Phase 5 — UI
+## Phase 5 — UI ⏭ next
 
 Follow `DESIGN.md` exactly.
 1. shadcn init + theme tokens + fonts + `Providers`.

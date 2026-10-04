@@ -263,6 +263,28 @@ Signboard matching ignores accents and one typo, and treats "SM", "City", "Ave"�
 - **Directions:** feeding landmarks into `build-data` raised known `towards` from 1,361 to **1,395** (81.7%) and fixed
   "Cartimar – EDSA/Buendia". 313 still unknown.
 
+## Phase 4 results (AI layer and API)
+
+- **Gemini calls** (`lib/ai/gemini.ts`): parse = JSON mode (`responseJsonSchema`, flat schema), temperature 0,
+  ≤ 400 output tokens; answer = temperature 0.3, ≤ 700 tokens. Both ask for `thinkingLevel: MINIMAL`; if the model
+  answers 400 about thinking, the setting is dropped for the rest of the process. 15 s timeout.
+- **Calls per question:** 2 for a route/check answer; **1** for off-topic, missing info, ambiguous or unknown places
+  (template replies); **0** with the From/To form when AI is off. "No route" answers also skip the second call.
+- **Fallbacks:** `no_key`, `rate_limited` (HTTP 429), `ai_error` (timeout, bad JSON, other errors), `answer_rejected`
+  (AI text named a route the router didn't return, or skipped the best one). All give the template answer.
+- **First real run (2026-10-05, owner's PC):** `gemini-3.8-flash` refuses `thinkingLevel: MINIMAL` (400) and was
+  overloaded (503) most of the time; with default thinking it took > 10 s. `gemini-3.5-flash-lite` answered every
+  call in ~1–1.5 s with 0 thinking tokens (parse ≈ 400 in / 110–160 out; answer ≈ 850–1,050 in / 135–270 out).
+  So: thinking steps down MINIMAL → LOW → default per model; after a 503/timeout the main model is skipped for 5 min
+  and `GEMINI_FALLBACK_MODEL` (default `gemini-3.5-flash-lite`) is used. Flash-lite slips seen: called a bus "MRT",
+  answered an English question in Taglish, read a general "anong bus o jeep" as check_routes; prompts tightened and
+  check_routes with only the destination as "signboard" is turned into plan_trip in code.
+- **Decision (2026-10-05): main model = `gemini-3.5-flash-lite`, backup = `gemini-3.8-flash`.** Second real run with
+  lite as main: all 5 sample questions answered by AI, ~2.1–2.8 s per route answer (two calls of ~1 s), ~1 s for
+  template replies, 0 thinking tokens, correct language, check_routes answered per vehicle. 3.8-flash's 20 RPD
+  makes it a poor main model on the free tier.
+- `/api/chat` limits each visitor to 10 questions/minute (in memory, per instance).
+
 ## Gemini free tier
 
 - **Model:** `gemini-3.8-flash` — listed as the current stable Flash model and free-of-charge on the
@@ -274,11 +296,14 @@ Signboard matching ignores accents and one typo, and treats "SM", "City", "Ave"�
 
   | Model | RPM | TPM | RPD | Checked |
   |---|---|---|---|---|
-  | gemini-3.8-flash | ? | ? | ? | — |
+  | gemini-3.8-flash | ? | ? | **20** (per project, per model) | 2026-10-05, from a real 429 (`GenerateRequestsPerDayPerProjectPerModel-FreeTier`) |
+  | gemini-3.5-flash-lite | ? | ? | ? (separate quota) | — |
 
 - **Privacy:** on the free tier, Google says content *is* used to improve its products — another reason
   for the "Don't type personal information" note.
-- **Design consequence:** B.AI spends 2 calls per question, so the daily question budget is RPD ÷ 2.
+- **Design consequence:** B.AI spends 2 calls per question, so the daily question budget is RPD ÷ 2:
+  only **~10 AI questions/day on gemini-3.8-flash**. Quotas are per model, so on a 429 the client switches to the
+  backup model and leaves the main one alone until the `retryDelay` Google sends (the time to the daily reset).
   Whatever the number, Phase 4's fallback must treat HTTP 429 as normal, not exceptional.
 
 Sources: [Gemini models](https://ai.google.dev/gemini-api/docs/models),

@@ -267,3 +267,88 @@ export const GeocodeResultSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("outside_area"), place: GeoPlaceSchema }),
 ]);
 export type GeocodeResult = z.infer<typeof GeocodeResultSchema>;
+
+// ---------------------------------------------------------------------------
+// Intent (Phase 4): what the user asked, as parsed by Gemini or the simple parser
+// ---------------------------------------------------------------------------
+
+export const PlaceQuerySchema = z.union([
+  z.object({ text: z.string().min(1).max(200) }).strict(),
+  z.object({ useCurrentLocation: z.literal(true) }).strict(),
+]);
+export type PlaceQuery = z.infer<typeof PlaceQuerySchema>;
+
+export const IntentSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("plan_trip"), origin: PlaceQuerySchema, destination: PlaceQuerySchema, prefs: PrefsSchema }),
+  z.object({
+    type: z.literal("check_routes"),
+    origin: PlaceQuerySchema,
+    destination: PlaceQuerySchema,
+    candidates: z.array(CandidateSchema).min(1).max(5),
+    prefs: PrefsSchema,
+  }),
+  z.object({ type: z.literal("need_more_info"), missing: z.array(z.enum(["origin", "destination"])).min(1) }),
+  z.object({ type: z.literal("off_topic") }),
+]);
+export type Intent = z.infer<typeof IntentSchema>;
+
+/** Reply language. "fil" = casual Taglish (the default), "en" = English. */
+export const LangSchema = z.enum(["fil", "en"]);
+export type Lang = z.infer<typeof LangSchema>;
+
+// ---------------------------------------------------------------------------
+// /api/chat request and response
+// ---------------------------------------------------------------------------
+
+const PickedPlaceSchema = z.object({ name: z.string().min(1).max(200), lat: z.number(), lon: z.number(), stopId: z.string().optional() });
+
+export const ChatRequestSchema = z
+  .object({
+    /** Free-text question. Either this or from + to. */
+    message: z.string().trim().min(1).max(500).optional(),
+    /** Fallback form (no AI): plain place names. */
+    from: z.string().trim().min(1).max(200).optional(),
+    to: z.string().trim().min(1).max(200).optional(),
+    /** Recent turns, oldest first, so "España" can answer "Saan ka papunta?". */
+    history: z.array(z.object({ role: z.enum(["user", "assistant"]), text: z.string().max(1000) })).max(6).default([]),
+    /** Browser location, only when the user tapped "use my location". Never stored. */
+    location: z.object({ lat: z.number().min(-90).max(90), lon: z.number().min(-180).max(180) }).optional(),
+    /** A place the user picked from "Alin dito?" choices, sent back with the same question. */
+    picked: z.object({ origin: PickedPlaceSchema.optional(), destination: PickedPlaceSchema.optional() }).default({}),
+  })
+  .refine((r) => r.message || (r.from && r.to), { message: "send a message, or both from and to" });
+export type ChatRequest = z.infer<typeof ChatRequestSchema>;
+export type ChatRequestInput = z.input<typeof ChatRequestSchema>;
+
+export const ChatKindSchema = z.enum([
+  "route", // planTrip answer (itineraries for the map)
+  "check", // checkRoutes answer
+  "no_route", // places found, nothing connects them
+  "ask_place", // ambiguous place: pick one of `choices`
+  "place_not_found",
+  "need_more_info", // origin or destination missing
+  "need_location", // "use my location" without coordinates
+  "off_topic",
+  "fallback_form", // AI unavailable and the question couldn't be read: show From/To boxes
+]);
+export type ChatKind = z.infer<typeof ChatKindSchema>;
+
+export const ChatResponseSchema = z.object({
+  kind: ChatKindSchema,
+  /** Reply text. Markdown-light: **bold** signboards, numbered steps. */
+  text: z.string().min(1),
+  lang: LangSchema,
+  origin: GeoPlaceSchema.optional(),
+  destination: GeoPlaceSchema.optional(),
+  plan: PlanResultSchema.optional(),
+  check: CheckResultSchema.optional(),
+  /** For ask_place: which end is ambiguous, and the options. */
+  choices: z.object({ field: z.enum(["origin", "destination"]), options: z.array(GeoPlaceSchema).min(2) }).optional(),
+  /** The standard data disclaimer; present on every route/check/no_route answer. */
+  disclaimer: z.string().optional(),
+  /** Who wrote `text`: Gemini, or the plain template. */
+  writer: z.enum(["ai", "template"]),
+  /** Why the template was used, when AI was expected. */
+  fallbackReason: z.enum(["no_key", "rate_limited", "ai_error", "answer_rejected"]).optional(),
+});
+export type ChatResponse = z.infer<typeof ChatResponseSchema>;
