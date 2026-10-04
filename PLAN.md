@@ -12,41 +12,49 @@
 > **Every agent:** update this block at the end of any task that finishes a step or changes what
 > comes next. Keep it short; details go in `docs/learning-log/`.
 
-**Last updated:** 2026-10-04 23:40 (Asia/Manila)
-**Current phase:** Phase 0 done (one small TODO below). **Next: Phase 1 — Data pipeline.**
+**Last updated:** 2026-10-04 23:55 (Asia/Manila)
+**Current phase:** Phase 1 done. **Next: Phase 2 — Router.**
 **Repo:** https://github.com/Rav-alt/B.AI (branch `main`) · local copy: `C:\Projects\B.AI`
 
 ### Done
-- ✅ **Phase 0** — scaffold builds, data checked, Gemini works. Commit on `main`: "Phase 0: scaffold and data check".
-  Findings are in `docs/data-notes.md`; read it before Phase 1.
+- ✅ **Phase 0** — scaffold builds, data checked, Gemini works. Findings in `docs/data-notes.md`.
+- ✅ **Phase 1** — `npm run build:data` writes `data/generated/network.json` (1,719 patterns, 4,835 stops,
+  7,152 walking transfers, ~1.7 MB). Corrections applied: PNR removed, Roosevelt → Fernando Poe Jr.
+  35 tests pass. Results and the direction rules: `docs/data-notes.md` → "Phase 1 results".
 
 ### Open items
 - [ ] Copy the free-tier RPM / TPM / RPD for `gemini-3.8-flash` from https://aistudio.google.com/rate-limit
-      into the table in `docs/data-notes.md`. Only needed by Phase 4; does not block Phase 1.
-- [ ] Decide the workflow for Phase 1+: an agent pushes to a branch on GitHub and the owner reviews and `git pull`s,
-      **or** the agent writes straight into `C:\Projects\B.AI` and the owner commits. (Asked, not answered yet.)
+      into the table in `docs/data-notes.md`. Only needed by Phase 4.
+- [ ] Workflow: the cloud agent **can't push** to the repo (the Claude GitHub App isn't installed for it), so for
+      now work is copied into `C:\Projects\B.AI` and the owner commits and pushes. To let agents push to a
+      branch instead, install the app: https://github.com/apps/claude/installations/select_target
+- [ ] Remaining corrections (EDSA Carousel, LRT-1 Cavite ext., LRT-2 East ext., stale EDSA buses): list in
+      `docs/data-notes.md`. Not blocking; add as the router tests show where they matter.
 
-### Key facts every agent needs (from Phase 0)
+### Key facts every agent needs
 - **Stack as installed:** Next.js **16.3** (read `AGENTS.md`: APIs differ from older Next), React 19, Tailwind v4,
   TypeScript strict + `noUncheckedIndexedAccess`, vitest 5, tsx, zod 4, `@google/genai` 2.x. Node ≥ 22.
-- **npm scripts:** `dev`, `build`, `test`, `lint`, `build:data` (placeholder until Phase 1), `inspect:gtfs`, `test:gemini`.
-- **Data:** the GTFS feed is in `data/raw/` (git-ignored). Mode comes from the **route_id prefix**:
-  `LTFRB_PUJ*` = jeep (1,522), `LTFRB_PUB*` = bus (189), route_type 1/2 = train (4 lines), `FORT_*` = bus.
-  No UV routes, no `direction_id` (directions are separate routes with the same name), almost no shapes for road routes.
-- **Acceptance tests already pass on the raw data:** Pedro Gil Taft → España has 13 direct routes;
-  "bus to SM Fairview" = yes, "jeep to Divisoria" = no.
-- **Gemini:** `gemini-3.8-flash` works on the free tier. Thinking is on by default (490 of 518 tokens in the test call),
-  so Phase 4 must set a low/zero thinking budget.
-- **Secrets:** the API key lives only in `.env.local` (git-ignored). `.env.example` must keep **empty** values.
-  GitHub push protection already blocked one leak; never commit a key or click "allow secret".
-- **Fonts:** Google Fonts can't be reached from the cloud agent's sandbox; fonts are a Phase 5 job anyway.
+  Run `npm run build` once before `npx tsc --noEmit` (Next generates the `LayoutProps` type).
+- **npm scripts:** `dev`, `build`, `test`, `lint`, `build:data`, `inspect:gtfs`, `test:gemini`.
+- **Data in:** the GTFS feed goes in `data/raw/` (git-ignored): `git clone --depth 1 https://github.com/sakayph/gtfs data/raw`.
+  Fixes go in `data/corrections.json` (validated by `lib/data/corrections.ts`; every entry needs `source` + `updated`).
+- **Data out:** `data/generated/network.json` is committed. Types in `lib/types.ts` (`Network`, `Pattern`, `Stop`,
+  `Transfer`, plus `Leg`/`Itinerary` for the router). Load it server-side with `loadNetwork()` from `lib/router/network.ts`.
+- **Pattern = one route ridden one way.** `stops` are indices into `network.stops`; ride forward only.
+  `dist` = cumulative metres. `shape`/`shapeIdx` only on 8 patterns, otherwise draw stop to stop.
+  `towards` (which end it heads to) is known for 80% of road patterns; **handle it missing**.
+- **Acceptance data:** Pedro Gil Taft → España has ≥10 direct forward patterns (test in `tests/network.test.ts`).
+- **Gemini:** `gemini-3.8-flash`, free tier. Thinking is on by default, so Phase 4 must set a low/zero thinking budget.
+- **Secrets:** the API key lives only in `.env.local` (git-ignored). `.env.example` keeps **empty** values.
+  Never commit a key or click "allow secret".
 
-### Next steps (Phase 1, in order)
-1. `lib/types.ts` with zod schemas (Route, Stop, Leg, Itinerary, Network).
-2. `scripts/build-data.ts`: mode mapping, signboard name cleanup, one pattern per route direction,
-   cumulative distance, stop-to-stop polylines, walking transfers ≤ 300 m → `data/generated/network.json`.
-3. `data/corrections.json` + schema: start with removing PNR and renaming LRT-1 "Roosevelt" → "Fernando Poe Jr.".
-4. Tests: counts, every route ≥ 2 stops, mode mapping, name cleanup.
+### Next steps (Phase 2 — Router, test-first, pure functions in `lib/router/`)
+1. Nearby-stops lookup (grid index over `network.stops`) and walking estimates (e.g. 80 m/min, straight-line × ~1.3).
+2. Mode speeds for `estMinutes` from `dist` (pick and write down, e.g. train 30 km/h, bus 15, jeep 12).
+3. `planTrip()`: round-based search over patterns + `transfers`, max 2 transfers, forward only,
+   cost = ride min + walk min × 2 + 8 min per transfer, prefs; top 3 *diverse* itineraries → `Itinerary[]`.
+4. `checkRoutes()`: fuzzy signboard match on `name`/`rawName`/`endpoints`, yes/no + board/alight + reason.
+5. Tests: never ridden backwards, Pedro Gil Taft → España ≥1 itinerary, Fairview bus = yes / Divisoria jeep = no.
 
 ---
 
@@ -102,7 +110,7 @@ Goal: a running empty project, and a written answer to "is the data good enough,
 
 ---
 
-## Phase 1 — Data pipeline ⏭ next
+## Phase 1 — Data pipeline ✅ done 2026-10-04
 
 Turn raw GTFS into `data/generated/network.json`.
 - Shared types in `lib/types.ts` (Route, Stop, Leg, Itinerary), validated with zod.
@@ -114,7 +122,7 @@ Turn raw GTFS into `data/generated/network.json`.
 
 **Exit check:** `npm run build:data` produces `network.json`; a test loads it and checks counts and that every route has ≥2 stops.
 
-## Phase 2 — Router
+## Phase 2 — Router ⏭ next
 
 Pure TypeScript in `lib/router/`, test-first.
 - `haversine`, nearby-stops lookup, walking estimates.

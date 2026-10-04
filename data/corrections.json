@@ -1,0 +1,21 @@
+{
+  "removeRoutes": [
+    {
+      "routeId": "ROUTE_880872",
+      "reason": "PNR Metro Commuter Line stopped running in Metro Manila on 28 Mar 2024 for NSCR construction (planned for about 5 years).",
+      "source": "https://www.rappler.com/business/pnr-stop-operations-march-28-2024/",
+      "updated": "2026-10-04"
+    }
+  ],
+  "renameRoutes": [],
+  "renameStops": [
+    {
+      "stopId": "LTFRB_4963",
+      "name": "Fernando Poe Jr. LRT",
+      "source": "https://businessmirror.com.ph/2023/08/21/lrt-roosevelt-renamed-fernando-poe-jr-station/ (LRT-1 Roosevelt station renamed, Aug 2023)",
+      "updated": "2026-10-04"
+    }
+  ],
+  "addRoutes": [],
+  "landmarkAliases": []
+}

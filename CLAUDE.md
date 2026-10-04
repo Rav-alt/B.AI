@@ -205,8 +205,9 @@ Every entry has a `source` and `updated` date field.
   Signboard, ModeBadge, StarterChips, Disclaimer, Logo
 /lib
   ai/                      # gemini client, parseIntent, writeAnswer, prompts
+  data/                    # build-time: csv parser, mode mapping, name cleanup, directions, corrections schema, buildNetwork()
   geo/                     # geocode, nominatim client (throttled + cached), haversine
-  router/                  # network loader, planTrip, checkRoutes, scoring
+  router/                  # network loader (network.ts), planTrip, checkRoutes, scoring
   motion.ts                # shared animation presets (DESIGN.md §9)
   utils.ts                 # shadcn cn() helper
   types.ts
@@ -252,7 +253,7 @@ Real values go in `.env.local` only (git-ignored). `.env.example` stays empty.
 `PLAN.md` is the source of truth for the order of work and current progress. Summary:
 
 0. **Foundation + data check** ✅
-1. **Data**: `scripts/build-data.ts` reads the `sakayph/gtfs` files and outputs `network.json`, merged with `corrections.json`. Log route/stop counts.
+1. **Data** ✅: `scripts/build-data.ts` reads the `sakayph/gtfs` files and outputs `network.json`, merged with `corrections.json`. Log route/stop counts.
 2. **Router**: `planTrip` and `checkRoutes` with tests.
 3. **Geocoding**: landmarks plus throttled, cached Nominatim.
 4. **AI layer**: intent parsing and answer writing, with the no-AI fallback.

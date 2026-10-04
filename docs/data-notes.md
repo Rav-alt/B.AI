@@ -154,18 +154,18 @@ Names and sources only; coordinates/stops get filled in during Phase 1. Every en
 **addRoutes**
 - [ ] **EDSA Carousel** (bus, Monumento – PITX, busway stations). Source: DOTr/LTFRB route announcements, 2020–.
 - [ ] **LRT-1 Cavite Extension phase 1**: Redemptorist-Aseana, MIA Road, PITX, Ninoy Aquino Ave, Dr. Santos (opened Nov 2024). Source: LRMC.
-- [ ] **LRT-1 north**: "Roosevelt" was renamed **Fernando Poe Jr.**; Balintawak already present.
+- [x] **LRT-1 north**: "Roosevelt" was renamed **Fernando Poe Jr.** (Aug 2023); Balintawak already present. *Done in Phase 1 as a `renameStops` entry.*
 - [ ] **LRT-2 East Extension**: Marikina-Pasig, Antipolo (opened Jul 2021). Source: LRTA.
 - [ ] **BGC Bus** current routes (feed has only "Fort Central", "Fort West" loops).
 - [ ] **MRT-7** — check status in Phase 1 (partial operations were still being targeted as of early 2026).
 - [ ] UV Express routes — optional, none in feed; only add well-known ones with a source.
 
 **removeRoutes**
-- [ ] **PNR Metro Commuter** (`ROUTE_880872`): Metro Manila service suspended since Mar 2024 for NSCR construction.
+- [x] **PNR Metro Commuter** (`ROUTE_880872`): Metro Manila service suspended since 28 Mar 2024 for NSCR construction. *Done in Phase 1.*
 - [ ] **EDSA provincial/city bus routes** replaced by the Carousel (filter: `PUB` routes whose name contains "via EDSA" or that run along EDSA between Monumento and Pasay). Needs a manual review list, not a blind regex.
 
 **renameRoutes**
-- [ ] LRT-1 "Baclaran – Roosevelt" → "Baclaran – Fernando Poe Jr." (and later → Dr. Santos once the extension is added).
+- [x] LRT-1 "Baclaran – Roosevelt" → "Baclaran – Fernando Poe Jr.". *Not a route rename after all: train names are built from their end stations, so renaming the station did it. The Cavite extension will make it "Dr. Santos – Fernando Poe Jr." the same way.*
 - [ ] "The Fort Bus" → "BGC Bus".
 - [ ] Rationalized jeep routes with new route codes — research later; low priority.
 
@@ -174,6 +174,47 @@ Names and sources only; coordinates/stops get filled in during Phase 1. Every en
 - [ ] Rotonda → Pasay Rotonda (EDSA/Taft); "RTDA." in signboards.
 - [ ] Quiapo (Quiapo Church / Plaza Miranda), Morayta (FEU), UST (España), Pedro Gil Taft, Cubao (Araneta City).
 - [ ] Ayala / Makati CBD (Ayala Ave – Paseo de Roxas), Buendia, Vito Cruz (DLSU), PITX, Divisoria.
+
+## Phase 1 results (network.json)
+
+> Built by `npm run build:data` on 2026-10-04. Logic lives in `lib/data/` (pure, tested); the script only reads and writes files.
+
+| | Count |
+|---|---|
+| Patterns (route × direction) | **1,719** — jeep 1,522 · bus 191 · train 6 · UV 0 |
+| Stops (only ones a pattern uses) | 4,835 |
+| Walking transfers (stop pairs ≤ 300 m) | 7,152 |
+| Patterns with a real shape | 8 (all 6 train directions + 2 jeeps); the rest draw stop to stop |
+| Loops | 5 |
+| Road directions worked out (`towards`) | **1,361 of 1,708 (80%)**; 347 unknown |
+| File size | ~1.7 MB (patterns 1.3 MB, stops 0.5 MB, transfers 0.1 MB) |
+
+**What a pattern is.** Each GTFS road route has exactly one stop sequence, and each train route has
+two (one per direction). So one *pattern* = one route ridden one way. The router may only ride a
+pattern forward. Train patterns get ids `ROUTE_880747:0` / `:1`; road patterns keep their route_id.
+
+**Train shapes.** The feed reuses one shape for both directions of a line. The builder flips it when
+the stops run the other way, and checks each station against the line *segments* (shape vertices
+are sparse, so checking vertices alone put stations up to ~220 m off and wrongly rejected them).
+
+**Direction (`towards`) — how it's worked out.** The feed has no `direction_id` or headsign, so:
+1. Split the signboard into its two ends ("Baclaran – SM Fairview"). Names with no separator
+   ("Alabang Fairview") try every word split and keep the one whose halves both match stops.
+2. Find stops whose names mention each end (the ", City" suffix is ignored so "Pasay" doesn't match all of Pasay).
+3. If the first stop is near end A's stops and the last near end B's, it heads to B. It must be clearly
+   better than the opposite way round (≥1 km better, or ≥3× better for routes that stop short of their ends).
+4. Second pass: every solved route teaches where its two places are; those points are added and the rest retried.
+5. Reverse twins (same name, mirrored ends) copy the solved twin, flipped.
+
+Checked: all **625** reverse-twin pairs where both sides were solved point opposite ways (no contradictions).
+Unknown directions are mostly signboard places that never appear in stop names ("Divisoria", "Pier North")
+— stop names are street intersections. Adding those places to `landmarkAliases` (Phase 3) raises coverage on
+the next build, because the matcher reads them. **The router and UI must cope with `towards` missing**
+(e.g. say "papuntang [last stop area]" or just the signboard).
+
+**Name cleanup** follows the rules above plus: spaced separators win over bare hyphens, and
+hyphenated place names (Bel-Air, Bagong-Silang, Dagat-Dagatan) are never split. Some source names are
+just messy ("Taftave.,Pasa Rotonda"); fix those with `renameRoutes` when they matter.
 
 ## Gemini free tier
 
