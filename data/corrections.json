@@ -7,7 +7,20 @@
       "updated": "2026-10-04"
     }
   ],
-  "renameRoutes": [],
+  "renameRoutes": [
+    {
+      "routeId": "LTFRB_PUJ2607",
+      "name": "Arroceros - Project 7 via Espana",
+      "source": "Source name 'Arroceros Proj 7 via Espana' has no separator; adding landmarks made the automatic split pick 'Arroceros Project – 7'. Arroceros (Manila) and Project 7 (QC) match the route's first/last stops.",
+      "updated": "2026-10-05"
+    },
+    {
+      "routeId": "LTFRB_PUJ2608",
+      "name": "Arroceros - Project 7 via Espana",
+      "source": "Source name 'Arroceros Proj 7 via Espana' has no separator; adding landmarks made the automatic split pick 'Arroceros Project – 7'. Arroceros (Manila) and Project 7 (QC) match the route's first/last stops.",
+      "updated": "2026-10-05"
+    }
+  ],
   "renameStops": [
     {
       "stopId": "LTFRB_4963",

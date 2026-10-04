@@ -12,8 +12,8 @@
 > **Every agent:** update this block at the end of any task that finishes a step or changes what
 > comes next. Keep it short; details go in `docs/learning-log/`.
 
-**Last updated:** 2026-10-05 00:15 (Asia/Manila)
-**Current phase:** Phase 2 done. **Next: Phase 3 — Geocoding** (Phase 5 static UI can start in parallel).
+**Last updated:** 2026-10-05 00:50 (Asia/Manila)
+**Current phase:** Phase 3 done. **Next: Phase 4 — AI layer and API** (Phase 5 static UI can start in parallel).
 **Repo:** https://github.com/Rav-alt/B.AI (branch `main`) · local copy: `C:\Projects\B.AI`
 
 ### Done
@@ -23,6 +23,9 @@
 - ✅ **Phase 2** — `planTrip()` and `checkRoutes()` in `lib/router/` (pure, no AI). Pedro Gil Taft → España
   works, Fairview bus = yes / Divisoria jeep = no, never rides backwards. 62 tests pass.
   Assumptions and real answers: `docs/data-notes.md` → "Phase 2 results". Try it: `npm run try:router`.
+- ✅ **Phase 3** — `geocodeText()` / `placeFromCoords()` in `lib/geo/`: 36 sourced landmarks + station/stop names first,
+  then Nominatim (1 req/s, User-Agent, cache; mocked in tests). Ambiguous names return choices. Landmarks also feed
+  `build-data` (known directions 1,361 → 1,395). 85 tests pass. Details: `docs/data-notes.md` → "Phase 3 results".
 
 ### Open items
 - [ ] Copy the free-tier RPM / TPM / RPD for `gemini-3.8-flash` from https://aistudio.google.com/rate-limit
@@ -56,12 +59,21 @@
 - `origin`/`destination` are `PlaceRef` `{ name, lat, lon }`, the geocoder's job in Phase 3. Schemas in `lib/types.ts`.
 - `totalMinutes` is a rough sum of legs (no waiting/traffic): word it as "mga …".
 
-### Next steps (Phase 3 — Geocoding)
-1. `data/landmarks.json` (~30 places from `docs/data-notes.md` → acceptance places + corrections list), with `source`.
-2. Fuzzy matcher over landmarks + stop names (reuse `normalizeText`/`wordMatches` from `lib/router/match.ts`).
-3. Nominatim client in `lib/geo/`: 1 req/s, User-Agent from `NOMINATIM_CONTACT`, LRU cache, Metro Manila box.
-4. Result type: `found` / `ambiguous` (choices) / `not_found`. Tests with Nominatim mocked.
-5. Then: add `landmarkAliases` to `corrections.json` and rebuild data (raises `towards` coverage).
+### Geocoding API (for Phases 4–5)
+- `geocodeText(text, { net, landmarks, nominatim })` → `GeocodeResult`: `found` (a `GeoPlace`) · `ambiguous` (2–5 choices,
+  each with an `area` label) · `not_found` (`no_match` | `search_unavailable`) · `outside_area`.
+- Context in the route handler: `loadNetwork()`, `loadLandmarks()`, `getNominatim()` (null if `NOMINATIM_CONTACT` unset).
+- `placeFromCoords(lat, lon)` for "use my location" (never store it).
+- A `GeoPlace` is a `PlaceRef`, so it goes straight into `planTrip` / `checkRoutes`.
+
+### Next steps (Phase 4 — AI layer and API)
+1. `lib/ai/gemini.ts`: client from `GEMINI_API_KEY` / `GEMINI_MODEL`, low/zero thinking budget, 429 → typed error.
+2. `parseIntent()`: JSON schema mode, validated with zod into the `Intent` type from `CLAUDE.md` (add it to `lib/types.ts`).
+3. `writeAnswer()`: router JSON only; prompt rules from `CLAUDE.md` §[4]; ambiguous places → "Alin dito?";
+   city-sized names (5 street choices) → ask for a landmark instead.
+4. Plain-text template answer (no AI) for the fallback, and `app/api/chat/route.ts` wiring it all (read `AGENTS.md` first).
+5. Tests: name check (answer mentions no route missing from the router result), off-topic, missing destination,
+   fallback with no key. Fill the Gemini RPM/RPD table in `docs/data-notes.md`.
 
 ---
 
@@ -138,7 +150,7 @@ Pure TypeScript in `lib/router/`, test-first.
 
 **Exit check:** tests for "never ridden backwards", Pedro Gil Taft → España returns ≥1 itinerary, and a check-routes case with one yes and one no.
 
-## Phase 3 — Geocoding ⏭ next
+## Phase 3 — Geocoding ✅ done 2026-10-05
 
 - `data/landmarks.json` (start with ~30: stations, universities, malls, intersections from `data-notes.md`).
 - Fuzzy matcher over landmarks + stop names.
@@ -147,7 +159,7 @@ Pure TypeScript in `lib/router/`, test-first.
 
 **Exit check:** tests for exact, fuzzy, ambiguous, and not-found inputs (Nominatim mocked in tests).
 
-## Phase 4 — AI layer and API
+## Phase 4 — AI layer and API ⏭ next
 
 - `parseIntent()` with JSON schema mode + zod; `writeAnswer()` from router JSON only.
 - Set a low/zero thinking budget on both calls (see `docs/data-notes.md` → Gemini free tier).

@@ -169,11 +169,11 @@ Names and sources only; coordinates/stops get filled in during Phase 1. Every en
 - [ ] "The Fort Bus" → "BGC Bus".
 - [ ] Rationalized jeep routes with new route codes — research later; low priority.
 
-**landmarkAliases**
-- [ ] Lawton (Liwasang Bonifacio, Manila) — avoid the Taguig "Lawton Ave" match.
-- [ ] Rotonda → Pasay Rotonda (EDSA/Taft); "RTDA." in signboards.
-- [ ] Quiapo (Quiapo Church / Plaza Miranda), Morayta (FEU), UST (España), Pedro Gil Taft, Cubao (Araneta City).
-- [ ] Ayala / Makati CBD (Ayala Ave – Paseo de Roxas), Buendia, Vito Cruz (DLSU), PITX, Divisoria.
+**landmarkAliases** — *done in Phase 3 as `data/landmarks.json` (36 places, each with a source); `build-data` reads it too.*
+- [x] Lawton (Liwasang Bonifacio, Manila) — avoid the Taguig "Lawton Ave" match.
+- [x] Rotonda → Pasay Rotonda (EDSA/Taft); "RTDA." in signboards.
+- [x] Quiapo (Quiapo Church / Plaza Miranda), Morayta (FEU), UST (España), Pedro Gil Taft, Cubao (Araneta City).
+- [x] Ayala / Makati CBD (Ayala Ave – Paseo de Roxas), Buendia, Vito Cruz (DLSU), PITX, Divisoria.
 
 ## Phase 1 results (network.json)
 
@@ -244,6 +244,24 @@ just messy ("Taftave.,Pasa Rotonda"); fix those with `renameRoutes` when they ma
 `destination_only`, `passes_neither`, `no_such_route`. Each matched route carries its own reason, so the
 answer can say "the Fairview bus going *to Baclaran* won't work, take the one going to SM Fairview".
 Signboard matching ignores accents and one typo, and treats "SM", "City", "Ave"… as optional.
+
+## Phase 3 results (geocoding)
+
+> `lib/geo/`. Try it: `npm run try:router -- "Katipunan" "Lawton"` (local lookup only).
+
+- **`data/landmarks.json`**: 36 places, 138 aliases. Coordinates: Wikipedia infobox (26), GTFS stop (6),
+  "Approximate" checked against nearby stops (4). All within 600 m of a stop. Only shared alias: "Buendia"
+  (Gil Puyat LRT on Taft vs Buendia MRT on EDSA), on purpose, so it's ambiguous.
+- **Order of lookup:** exact landmark/alias or train-station name (with or without "LRT"/"MRT") → fuzzy words over
+  landmarks + all 4,835 stop names → Nominatim. Results < 600 m apart count as one place.
+- **Station names beat streets:** "Guadalupe", "Anonas", "Kamuning" → the station. Except bare road names
+  ("EDSA", "Quezon", "Taft Ave"), which stay ambiguous.
+- **Nominatim** is never called in tests and was not reachable from the build machine (robots/proxy). The client
+  follows the policy: 1 req/s queue, `User-Agent: B.AI-commute-helper/1.0 (contact: $NOMINATIM_CONTACT)`, LRU cache
+  of 200, `countrycodes=ph`, Metro Manila `viewbox` + `bounded=1`. Without `NOMINATIM_CONTACT` it's simply off
+  (`not_found` / `search_unavailable`).
+- **Directions:** feeding landmarks into `build-data` raised known `towards` from 1,361 to **1,395** (81.7%) and fixed
+  "Cartimar – EDSA/Buendia". 313 still unknown.
 
 ## Gemini free tier
 

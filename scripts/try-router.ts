@@ -1,8 +1,12 @@
-// Prints router answers for a few known trips, for eyeballing. Run: npm run try:router
+// Prints router answers for eyeballing.
+//   npm run try:router                       → a few known trips
+//   npm run try:router -- "Pedro Gil" "UST"  → your own trip, place names looked up locally (no Nominatim)
 import { loadNetwork } from "@/lib/router/network";
 import { planTrip } from "@/lib/router/plan";
 import { checkRoutes } from "@/lib/router/check";
 import type { Itinerary, PlaceRef } from "@/lib/types";
+import { loadLandmarks } from "@/lib/geo/landmarks";
+import { matchPlace } from "@/lib/geo/places";
 
 const P: Record<string, PlaceRef> = {
   pedroGilTaft: { name: "Pedro Gil Taft", lat: 14.5766, lon: 120.9881 },
@@ -23,6 +27,27 @@ function show(it: Itinerary) {
 }
 
 const net = loadNetwork();
+
+const [fromText, toText] = process.argv.slice(2);
+if (fromText && toText) {
+  const lookup = (q: string): PlaceRef => {
+    const r = matchPlace(net, loadLandmarks(), q);
+    if (r.status === "found") return r.place;
+    if (r.status === "ambiguous") {
+      console.log(`"${q}" is ambiguous: ${r.choices.map((c) => c.name + (c.area ? ` (${c.area})` : "")).join(" | ")}`);
+      process.exit(1);
+    }
+    console.log(`"${q}" not found locally (${r.status === "not_found" ? r.reason : r.status})`);
+    process.exit(1);
+  };
+  const a = lookup(fromText);
+  const b = lookup(toText);
+  const res = planTrip(net, a, b);
+  console.log(`${a.name} → ${b.name}: ${res.status}, radius ${res.walkRadiusM} m`);
+  res.itineraries.forEach(show);
+  process.exit(0);
+}
+
 const trips: [string, string, object?][] = [
   ["pedroGilTaft", "espana"], ["cubao", "ayala"], ["cubao", "ayala", { trainsOnly: true }],
   ["quiapo", "upDiliman"], ["moa", "monumento"], ["upDiliman", "moa"],

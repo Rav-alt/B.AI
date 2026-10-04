@@ -1,4 +1,5 @@
-// Build data/generated/network.json from the GTFS feed in data/raw/ plus data/corrections.json.
+// Build data/generated/network.json from the GTFS feed in data/raw/ plus data/corrections.json
+// (and data/landmarks.json, used only to work out route directions).
 // Run with:  npm run build:data
 // Get the feed first (one time):  git clone --depth 1 https://github.com/sakayph/gtfs data/raw
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
@@ -6,6 +7,7 @@ import { join } from "node:path";
 import { parseCsv, type Row } from "../lib/data/csv";
 import { CorrectionsSchema } from "../lib/data/corrections";
 import { buildNetwork } from "../lib/data/build";
+import { LandmarksSchema } from "../lib/geo/landmarks";
 
 const ROOT = process.cwd();
 const RAW = join(ROOT, "data", "raw");
@@ -37,8 +39,19 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+// data/landmarks.json (the geocoder's list) also teaches the direction matcher where places are,
+// so "Divisoria" or "Lawton" on a signboard can be located even though no stop is named that.
+const landmarks = LandmarksSchema.parse(JSON.parse(readFileSync(join(ROOT, "data", "landmarks.json"), "utf8")));
+const corrections = {
+  ...parsed.data,
+  landmarkAliases: [
+    ...parsed.data.landmarkAliases,
+    ...landmarks.map(({ name, aliases, lat, lon, source, updated }) => ({ name, aliases, lat, lon, source, updated })),
+  ],
+};
+
 const feedInfo = load("feed_info", false)[0];
-const { network, report } = buildNetwork(feed, parsed.data, {
+const { network, report } = buildNetwork(feed, corrections, {
   builtAt: new Date().toISOString(),
   feedNote: feedInfo ? `feed_info: ${feedInfo.feed_publisher_name ?? ""} ${feedInfo.feed_version ?? ""}`.trim() : "",
 });

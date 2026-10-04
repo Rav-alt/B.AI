@@ -241,3 +241,29 @@ export const CheckResultSchema = z.object({
   walkRadiusM: z.number().positive(),
 });
 export type CheckResult = z.infer<typeof CheckResultSchema>;
+
+// ---------------------------------------------------------------------------
+// Geocoding results (Phase 3)
+// ---------------------------------------------------------------------------
+
+/** A place the geocoder resolved, and where the answer came from. */
+export const GeoPlaceSchema = PlaceRefSchema.extend({
+  source: z.enum(["landmark", "stop", "nominatim", "device"]),
+  /** Short area label to tell similar names apart, e.g. "Taguig City". */
+  area: z.string().optional(),
+});
+export type GeoPlace = z.infer<typeof GeoPlaceSchema>;
+
+/**
+ * - found: one place
+ * - ambiguous: 2–5 places far apart that all fit; B.AI asks "Alin dito?"
+ * - not_found: no_match (nothing fits) or search_unavailable (OpenStreetMap search off or failing)
+ * - outside_area: a real place, but outside Metro Manila (B.AI only covers Metro Manila)
+ */
+export const GeocodeResultSchema = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("found"), place: GeoPlaceSchema }),
+  z.object({ status: z.literal("ambiguous"), choices: z.array(GeoPlaceSchema).min(2).max(5) }),
+  z.object({ status: z.literal("not_found"), reason: z.enum(["no_match", "search_unavailable"]) }),
+  z.object({ status: z.literal("outside_area"), place: GeoPlaceSchema }),
+]);
+export type GeocodeResult = z.infer<typeof GeocodeResultSchema>;
