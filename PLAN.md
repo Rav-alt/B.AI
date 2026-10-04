@@ -12,15 +12,17 @@
 > **Every agent:** update this block at the end of any task that finishes a step or changes what
 > comes next. Keep it short; details go in `docs/learning-log/`.
 
-**Last updated:** 2026-10-04 23:55 (Asia/Manila)
-**Current phase:** Phase 1 done. **Next: Phase 2 — Router.**
+**Last updated:** 2026-10-05 00:15 (Asia/Manila)
+**Current phase:** Phase 2 done. **Next: Phase 3 — Geocoding** (Phase 5 static UI can start in parallel).
 **Repo:** https://github.com/Rav-alt/B.AI (branch `main`) · local copy: `C:\Projects\B.AI`
 
 ### Done
 - ✅ **Phase 0** — scaffold builds, data checked, Gemini works. Findings in `docs/data-notes.md`.
 - ✅ **Phase 1** — `npm run build:data` writes `data/generated/network.json` (1,719 patterns, 4,835 stops,
   7,152 walking transfers, ~1.7 MB). Corrections applied: PNR removed, Roosevelt → Fernando Poe Jr.
-  35 tests pass. Results and the direction rules: `docs/data-notes.md` → "Phase 1 results".
+- ✅ **Phase 2** — `planTrip()` and `checkRoutes()` in `lib/router/` (pure, no AI). Pedro Gil Taft → España
+  works, Fairview bus = yes / Divisoria jeep = no, never rides backwards. 62 tests pass.
+  Assumptions and real answers: `docs/data-notes.md` → "Phase 2 results". Try it: `npm run try:router`.
 
 ### Open items
 - [ ] Copy the free-tier RPM / TPM / RPD for `gemini-3.8-flash` from https://aistudio.google.com/rate-limit
@@ -35,7 +37,7 @@
 - **Stack as installed:** Next.js **16.3** (read `AGENTS.md`: APIs differ from older Next), React 19, Tailwind v4,
   TypeScript strict + `noUncheckedIndexedAccess`, vitest 5, tsx, zod 4, `@google/genai` 2.x. Node ≥ 22.
   Run `npm run build` once before `npx tsc --noEmit` (Next generates the `LayoutProps` type).
-- **npm scripts:** `dev`, `build`, `test`, `lint`, `build:data`, `inspect:gtfs`, `test:gemini`.
+- **npm scripts:** `dev`, `build`, `test`, `lint`, `build:data`, `inspect:gtfs`, `test:gemini`, `try:router`.
 - **Data in:** the GTFS feed goes in `data/raw/` (git-ignored): `git clone --depth 1 https://github.com/sakayph/gtfs data/raw`.
   Fixes go in `data/corrections.json` (validated by `lib/data/corrections.ts`; every entry needs `source` + `updated`).
 - **Data out:** `data/generated/network.json` is committed. Types in `lib/types.ts` (`Network`, `Pattern`, `Stop`,
@@ -48,13 +50,18 @@
 - **Secrets:** the API key lives only in `.env.local` (git-ignored). `.env.example` keeps **empty** values.
   Never commit a key or click "allow secret".
 
-### Next steps (Phase 2 — Router, test-first, pure functions in `lib/router/`)
-1. Nearby-stops lookup (grid index over `network.stops`) and walking estimates (e.g. 80 m/min, straight-line × ~1.3).
-2. Mode speeds for `estMinutes` from `dist` (pick and write down, e.g. train 30 km/h, bus 15, jeep 12).
-3. `planTrip()`: round-based search over patterns + `transfers`, max 2 transfers, forward only,
-   cost = ride min + walk min × 2 + 8 min per transfer, prefs; top 3 *diverse* itineraries → `Itinerary[]`.
-4. `checkRoutes()`: fuzzy signboard match on `name`/`rawName`/`endpoints`, yes/no + board/alight + reason.
-5. Tests: never ridden backwards, Pedro Gil Taft → España ≥1 itinerary, Fairview bus = yes / Divisoria jeep = no.
+### Router API (for Phases 3–5)
+- `planTrip(net, origin, destination, prefs?)` → `PlanResult` `{ status, itineraries (≤3), walkRadiusM }`.
+- `checkRoutes(net, origin, destination, candidates, prefs?)` → `CheckResult` `{ verdicts, alternative?, walkRadiusM }`.
+- `origin`/`destination` are `PlaceRef` `{ name, lat, lon }`, the geocoder's job in Phase 3. Schemas in `lib/types.ts`.
+- `totalMinutes` is a rough sum of legs (no waiting/traffic): word it as "mga …".
+
+### Next steps (Phase 3 — Geocoding)
+1. `data/landmarks.json` (~30 places from `docs/data-notes.md` → acceptance places + corrections list), with `source`.
+2. Fuzzy matcher over landmarks + stop names (reuse `normalizeText`/`wordMatches` from `lib/router/match.ts`).
+3. Nominatim client in `lib/geo/`: 1 req/s, User-Agent from `NOMINATIM_CONTACT`, LRU cache, Metro Manila box.
+4. Result type: `found` / `ambiguous` (choices) / `not_found`. Tests with Nominatim mocked.
+5. Then: add `landmarkAliases` to `corrections.json` and rebuild data (raises `towards` coverage).
 
 ---
 
@@ -122,7 +129,7 @@ Turn raw GTFS into `data/generated/network.json`.
 
 **Exit check:** `npm run build:data` produces `network.json`; a test loads it and checks counts and that every route has ≥2 stops.
 
-## Phase 2 — Router ⏭ next
+## Phase 2 — Router ✅ done 2026-10-05
 
 Pure TypeScript in `lib/router/`, test-first.
 - `haversine`, nearby-stops lookup, walking estimates.
@@ -131,7 +138,7 @@ Pure TypeScript in `lib/router/`, test-first.
 
 **Exit check:** tests for "never ridden backwards", Pedro Gil Taft → España returns ≥1 itinerary, and a check-routes case with one yes and one no.
 
-## Phase 3 — Geocoding
+## Phase 3 — Geocoding ⏭ next
 
 - `data/landmarks.json` (start with ~30: stations, universities, malls, intersections from `data-notes.md`).
 - Fuzzy matcher over landmarks + stop names.

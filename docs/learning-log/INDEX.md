@@ -1,5 +1,6 @@
 # Learning Log
 
+- 2026-10-05 — [Phase 2: router](2026-10-05_0015_phase-2-router.md) — planTrip() finds up to 3 different ways from A to B, checkRoutes() says yes/no per signboard; pure TypeScript, 62 tests pass
 - 2026-10-04 — [Phase 1: data pipeline](2026-10-04_2355_phase-1-data-pipeline.md) — npm run build:data writes network.json (1,719 route directions, cleaned signboard names, 80% of directions known); first corrections applied
 - 2026-10-04 — [Project status tracking](2026-10-04_2345_project-status-tracking.md) — added a "Current status" block to PLAN.md, a "Start here" list to CLAUDE.md, and copied the docs into the repo
 - 2026-10-04 — [Gemini test result](2026-10-04_2335_gemini-test-result.md) — first real Gemini call works; found that hidden thinking uses 95% of tokens

@@ -216,6 +216,35 @@ the next build, because the matcher reads them. **The router and UI must cope wi
 hyphenated place names (Bel-Air, Bagong-Silang, Dagat-Dagatan) are never split. Some source names are
 just messy ("Taftave.,Pasa Rotonda"); fix those with `renameRoutes` when they matter.
 
+## Phase 2 results (router)
+
+> `lib/router/`, pure functions, no network or AI. Try it with `npm run try:router`.
+
+**Numbers the router assumes** (all in `lib/router/params.ts`; guesses, not data):
+
+| | Value |
+|---|---|
+| Walking speed | 80 m/min; walking distance = straight line × 1.3 |
+| Walk radius to find stops | 600 m of walking; 1 km if 600 m finds nothing |
+| Ride speeds | train 30 · bus 15 · jeep 12 · UV 20 km/h |
+| Cost | ride min + walk min × 2 + 3 per ride (boarding) + 8 per transfer |
+| Prefs | `lessWalking` → walk × 4 · `fewestTransfers` → 25 per transfer · `trainsOnly` / `avoidTrains` filter modes |
+| Limits | ≤ 2 transfers · no ride under 500 m · answers with rides walk ≤ 60% of the direct walk · "just walk" offered up to 1.2 km |
+
+**Answers on real trips** (2015 data):
+
+| Trip | Best answer |
+|---|---|
+| Pedro Gil Taft → España | bus **Baclaran – SM Fairview**, ~22 min; then jeep Project 6 – Vito Cruz; then LRT-1 + bus |
+| Cubao → Ayala | **MRT-3** Cubao → Ayala, ~19 min; then the old EDSA bus Alabang – Malabon (stale) |
+| Quiapo → UP Diliman | bus Baclaran – SM Fairview to Philcoa + jeep UP – MRT, ~51 min |
+| check: SM Fairview bus / Divisoria jeep | yes / no (`origin_only`: the Divisoria jeeps pass Pedro Gil but never reach España) |
+
+**`checkRoutes` reasons:** `passes_both` (yes), `wrong_direction`, `ride_too_short`, `origin_only`,
+`destination_only`, `passes_neither`, `no_such_route`. Each matched route carries its own reason, so the
+answer can say "the Fairview bus going *to Baclaran* won't work, take the one going to SM Fairview".
+Signboard matching ignores accents and one typo, and treats "SM", "City", "Ave"… as optional.
+
 ## Gemini free tier
 
 - **Model:** `gemini-3.8-flash` — listed as the current stable Flash model and free-of-charge on the

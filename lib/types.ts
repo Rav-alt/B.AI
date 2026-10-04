@@ -154,3 +154,90 @@ export const ItinerarySchema = z.object({
   walkMeters: z.number().nonnegative(),
 });
 export type Itinerary = z.infer<typeof ItinerarySchema>;
+
+// ---------------------------------------------------------------------------
+// Router input and results (Phase 2)
+// ---------------------------------------------------------------------------
+
+/** Rider preferences, as parsed from the question (all optional). */
+export const PrefsSchema = z.object({
+  fewestTransfers: z.boolean().optional(),
+  lessWalking: z.boolean().optional(),
+  trainsOnly: z.boolean().optional(),
+  avoidTrains: z.boolean().optional(),
+});
+export type Prefs = z.infer<typeof PrefsSchema>;
+
+/**
+ * Outcome of planTrip().
+ * - ok: at least one itinerary
+ * - no_stops_near_origin / no_stops_near_destination: nothing within the widest walking radius
+ * - no_route: stops exist at both ends but no ride connects them within 2 transfers
+ */
+export const PlanStatusSchema = z.enum(["ok", "no_stops_near_origin", "no_stops_near_destination", "no_route"]);
+export type PlanStatus = z.infer<typeof PlanStatusSchema>;
+
+export const PlanResultSchema = z.object({
+  status: PlanStatusSchema,
+  /** Best first, at most 3, each using a different set of signboards. */
+  itineraries: z.array(ItinerarySchema).max(3),
+  /** The walking radius (metres of walking) that produced the result: 600, or 1000 when widened. */
+  walkRadiusM: z.number().positive(),
+});
+export type PlanResult = z.infer<typeof PlanResultSchema>;
+
+export const CandidateSchema = z.object({
+  mode: ModeSchema.optional(),
+  signboard: z.string().min(1),
+});
+export type Candidate = z.infer<typeof CandidateSchema>;
+
+/**
+ * Why a candidate got its verdict (the AI turns this into words).
+ * - passes_both: boards near the origin and later reaches the destination → yes
+ * - wrong_direction: passes both places, but reaches the destination first (the other direction might work)
+ * - ride_too_short: right direction, but the ride would be shorter than the walking around it (not worth it)
+ * - origin_only: passes near the origin but never near the destination afterwards
+ * - destination_only: passes near the destination but not near the origin
+ * - passes_neither: the route exists but goes nowhere near either place
+ * - no_such_route: no route in the data has that signboard (and mode)
+ */
+export const CheckReasonSchema = z.enum([
+  "passes_both",
+  "wrong_direction",
+  "ride_too_short",
+  "origin_only",
+  "destination_only",
+  "passes_neither",
+  "no_such_route",
+]);
+export type CheckReason = z.infer<typeof CheckReasonSchema>;
+
+export const CandidateVerdictSchema = z.object({
+  candidate: CandidateSchema,
+  verdict: z.enum(["yes", "no"]),
+  reason: CheckReasonSchema,
+  /** Signboards in the data that matched, best first (at most 5), each with its own reason. */
+  matchedRoutes: z
+    .array(
+      z.object({
+        patternId: z.string(),
+        mode: ModeSchema,
+        routeName: z.string(),
+        towards: z.string().optional(),
+        reason: CheckReasonSchema,
+      }),
+    )
+    .max(5),
+  /** For a yes: walk → ride → walk on the best matching route. */
+  itinerary: ItinerarySchema.optional(),
+});
+export type CandidateVerdict = z.infer<typeof CandidateVerdictSchema>;
+
+export const CheckResultSchema = z.object({
+  verdicts: z.array(CandidateVerdictSchema),
+  /** Only when no candidate is a yes: the best planTrip() result instead. */
+  alternative: PlanResultSchema.optional(),
+  walkRadiusM: z.number().positive(),
+});
+export type CheckResult = z.infer<typeof CheckResultSchema>;
