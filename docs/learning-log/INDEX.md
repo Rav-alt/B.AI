@@ -1,5 +1,8 @@
 # Learning Log
 
+- 2026-10-05 — [LRT-1 extension + EDSA Carousel](2026-10-05_1535_lrt1-extension-and-carousel.md) — LRT-1 now runs to Dr. Santos (25 stations) and the EDSA Carousel (PITX ⇄ Monumento) is in the route data; 138 tests pass
+- 2026-10-05 — [Ask for the address, pin on map](2026-10-05_1434_ask-address-and-pin.md) — unknown place → B.AI asks for the address or a map pin and keeps the other place (no AI call); no stop nearby → names the nearest stop and offers the route to it
+- 2026-10-05 — [Place search retries](2026-10-05_1338_place-search-retries.md) — Nominatim retries with shorter names ("Ayala Mall" → "Ayala"), not-found places and search errors are logged, added Ayala Malls Manila Bay + STI College Pasay-EDSA
 - 2026-10-05 — [Phase 5: chat UI](2026-10-05_0230_phase-5-ui.md) — welcome screen, trip answers with signboard placards and steps, Leaflet map card, OO/HINDI cards, place picker, From/To fallback, /limitations; Gemini now writes only the lead line
 - 2026-10-05 — [Phase 4: AI layer and API](2026-10-05_0130_phase-4-ai-and-api.md) — POST /api/chat: Gemini reads the question and words the answer, code does the routing; AI text is checked against the router result; full no-AI fallback
 - 2026-10-05 — [Phase 3: geocoding](2026-10-05_0050_phase-3-geocoding.md) — place names → map points: 36 sourced landmarks + station/stop names first, polite cached Nominatim fallback, "Alin dito?" for ambiguous names

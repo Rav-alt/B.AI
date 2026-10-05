@@ -7,7 +7,7 @@ import { clusterByDistance } from "./cluster";
 import { haversineM } from "./haversine";
 
 /** Words around a place name in a question: "nasa Cubao ako", "malapit sa MOA". */
-const FILLER = new Set([
+export const FILLER = new Set([
   "nasa", "sa", "ako", "ko", "kami", "dito", "diyan", "near", "malapit", "the", "at", "in", "ng", "na", "po",
   "papuntang", "papunta", "pupunta", "galing", "from", "to", "going", "ang", "yung", "area", "banda", "around",
 ]);

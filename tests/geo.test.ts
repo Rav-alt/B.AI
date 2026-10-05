@@ -5,7 +5,7 @@ import { loadLandmarks } from "@/lib/geo/landmarks";
 import { insideMetroManila } from "@/lib/geo/bbox";
 import { matchPlace } from "@/lib/geo/places";
 import { createNominatim, NOMINATIM_URL, type NominatimClient } from "@/lib/geo/nominatim";
-import { geocodeText, placeFromCoords } from "@/lib/geo/geocode";
+import { geocodeText, MAX_SEARCHES, placeFromCoords, searchVariants } from "@/lib/geo/geocode";
 import { haversineM } from "@/lib/geo/haversine";
 import { GeocodeResultSchema, type GeocodeResult } from "@/lib/types";
 import { normalizeText } from "@/lib/text";
@@ -201,6 +201,64 @@ describe("geocodeText (local first, then Nominatim)", () => {
   it("says search_unavailable when Nominatim is off or failing", async () => {
     expect(await geocodeText("Zzz unknown", ctx(null))).toEqual({ status: "not_found", reason: "search_unavailable" });
     expect(await geocodeText("Zzz unknown", ctx(nomWith(new Error("down"))))).toEqual({ status: "not_found", reason: "search_unavailable" });
+  });
+});
+
+describe("searchVariants (shorter retries for Nominatim)", () => {
+  it("drops a loose word first: 'Ayala Mall Manila Bay' also tries 'Ayala Manila Bay'", () => {
+    const v = searchVariants("Ayala Mall Manila Bay");
+    expect(v[0]).toBe("Ayala Mall Manila Bay");
+    expect(v[1]).toBe("Ayala Manila Bay");
+  });
+
+  it("drops filler, keeps the first word, and stays within MAX_SEARCHES", () => {
+    const v = searchVariants("sa STI College Pasay EDSA");
+    expect(v[0]).toBe("STI College Pasay EDSA");
+    expect(v).toContain("STI College Pasay");
+    expect(v.length).toBeLessThanOrEqual(MAX_SEARCHES);
+    expect(v.every((q) => q.startsWith("STI "))).toBe(true);
+  });
+
+  it("never shortens two-word names to one word", () => {
+    expect(searchVariants("Robinsons Manila")).toEqual(["Robinsons Manila"]);
+    expect(searchVariants("papunta sa")).toEqual([]);
+  });
+});
+
+describe("geocodeText retries", () => {
+  const ctxOf = (nominatim: NominatimClient, onSearchError?: (q: string, e: unknown) => void) =>
+    ({ net, landmarks, nominatim, ...(onSearchError ? { onSearchError } : {}) });
+
+  it("finds 'Okada Mall Manila' when OpenStreetMap only knows 'Okada Manila'", async () => {
+    // Fake Nominatim: like the real one, every query word must be in the name.
+    const osmName = "Okada Manila";
+    const search = vi.fn(async (q: string) => {
+      const words = osmName.toLowerCase().split(" ");
+      return q.toLowerCase().split(" ").every((w) => words.includes(w))
+        ? [{ name: osmName, lat: 14.5149, lon: 120.9821, area: "Parañaque" }]
+        : [];
+    });
+    // No landmark or stop has this name, so this always goes to the (fake) Nominatim.
+    // (Ayala Malls Manila Bay used to be the example; it is now an EDSA Carousel stop, so it matches locally.)
+    const r = await geocodeText("Okada Mall Manila", { net, landmarks: [], nominatim: { search } });
+    expect(search.mock.calls.map((c) => c[0])).toEqual(["Okada Mall Manila", "Okada Manila"]);
+    expect(found(r).name).toMatch(/Okada Manila/);
+  });
+
+  it("retries a made-up place with shorter queries, then gives up with no_match", async () => {
+    const search = vi.fn(async () => []);
+    const r = await geocodeText("Zzqx Qwerty Plaza Annex", ctxOf({ search }));
+    expect(r).toEqual({ status: "not_found", reason: "no_match" });
+    expect(search.mock.calls.length).toBe(MAX_SEARCHES);
+  });
+
+  it("stops at the first error, reports it, and says search_unavailable", async () => {
+    const search = vi.fn(async () => { throw new Error("HTTP 403"); });
+    const onSearchError = vi.fn();
+    const r = await geocodeText("Zzqx Qwerty Plaza Annex", ctxOf({ search }, onSearchError));
+    expect(r).toEqual({ status: "not_found", reason: "search_unavailable" });
+    expect(search).toHaveBeenCalledTimes(1);
+    expect(onSearchError).toHaveBeenCalledWith("Zzqx Qwerty Plaza Annex", expect.any(Error));
   });
 });
 

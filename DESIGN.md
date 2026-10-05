@@ -131,6 +131,8 @@ Use mono (`font-mono`) **only** for times, distances, counts and small labels
 | Map card | plain `<figure>` (not shadcn `Card`) | |
 | Full-screen map | shadcn `Dialog` (full-screen classes) | |
 | Ambiguous place picker | a list of `Button`s | |
+| Place not found | `RichText` + address `Input`/`Label`/`Button` + outline "I-pin sa mapa" `Button` | the pin map is a full-screen `Dialog` (same classes as the full-screen route map); the pin is fixed at the map center (A or B pin) and the map moves under it, so arrow keys work; one `lg` "Gamitin ang puwestong ito" button at the bottom |
+| No stop near a place | lead text + one outline `Button` "Ruta mula/papunta sa …" | the nearest stop from the router |
 | Disclaimer | own `<Disclaimer>` (`role="note"`) | not shadcn `Alert` |
 | Loading | a plain "…" (three dots) | |
 
@@ -259,7 +261,7 @@ border-0 p-0`. Overlay is solid `bg-ink/60` with **no blur**. Visible close butt
 ## 8. Icons
 
 `lucide-react` only. Stroke width 2 (2.5–3 for small check/X), 20–22px in buttons. The set we use:
-`LocateFixed`, `ArrowRight`, `Maximize2`, `X`, `Info`, `Check`.
+`LocateFixed`, `ArrowRight`, `Maximize2`, `X`, `Info`, `Check`, `MapPin` ("I-pin sa mapa").
 Icon-only buttons need `aria-label`; decorative icons get `aria-hidden="true"`.
 
 ---
@@ -357,5 +359,6 @@ transitions and animations under `prefers-reduced-motion: reduce`.
 | Welcome / input bar / chat state | `components/Welcome.tsx`, `InputBar.tsx`, `Chat.tsx` |
 | Answers | `components/Messages.tsx` (per `kind`), `RoutePlan.tsx`, `RouteSteps.tsx`, `CheckAnswer.tsx`, `FallbackForm.tsx` |
 | Map | `components/MapCard.tsx` (legend, dialog), `RouteMap.tsx` (Leaflet, client-only) |
+| Place not found: address form + pin map | `components/FollowUp.tsx`, `PinMap.tsx` (Leaflet, client-only) |
 | Labels and meta text | `lib/ui/route-view.ts` (pure, tested in `tests/ui-helpers.test.ts`) |
 | Animation presets | `lib/motion.ts` |

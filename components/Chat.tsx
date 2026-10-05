@@ -16,6 +16,8 @@ type Msg =
 
 let nextId = 1;
 
+const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+
 /** Last few turns for the AI, so "España" can answer "Saan ka papunta?". */
 type Turn = { role: "user" | "assistant"; text: string };
 function historyOf(msgs: Msg[]): Turn[] {
@@ -94,6 +96,20 @@ export function Chat() {
       const here = await loc.request();
       if (here) void send({ ...req, location: here }, "Lokasyon ko");
     },
+    answerPlace: (f, text) =>
+      void send(
+        { ...f.request, [f.field === "origin" ? "from" : "to"]: text, ...(req.location ? { location: req.location } : {}) },
+        text,
+      ),
+    pinPlace: (f, spot) =>
+      void send(
+        {
+          ...f.request,
+          picked: { ...f.request.picked, [f.field]: { name: spot.name, lat: round6(spot.lat), lon: round6(spot.lon) } },
+          ...(req.location ? { location: req.location } : {}),
+        },
+        spot.name,
+      ),
     submitForm: (v: FallbackSubmit) =>
       void send(
         {

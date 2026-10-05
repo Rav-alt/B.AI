@@ -12,7 +12,7 @@
 > **Every agent:** update this block at the end of any task that finishes a step or changes what
 > comes next. Keep it short; details go in `docs/learning-log/`.
 
-**Last updated:** 2026-10-05 02:30 (Asia/Manila)
+**Last updated:** 2026-10-05 15:35 (Asia/Manila)
 **Current phase:** Phase 5 done. **Next: Phase 6 — Deploy.** First, look at the UI on the PC (`npm run dev`).
 **Repo:** https://github.com/Rav-alt/B.AI (branch `main`) · local copy: `C:\Projects\B.AI`
 
@@ -33,8 +33,20 @@
   badges + signboard placards, total, Leaflet map card + full-screen dialog, disclaimer, other options), check-route
   cards, place picker, location button, From/To fallback, `/limitations`. Gemini now writes only the lead line.
   128 tests pass; checked with Playwright at 360px. Code map: `DESIGN.md` §14.
+- ✅ **Place search fix** (after owner testing) — Nominatim now retries with shorter names (max 4 calls per place),
+  logs `place not found` / Nominatim errors in the server terminal, and 2 landmarks were added (Ayala Malls Manila Bay,
+  STI College Pasay-EDSA → 38). 134 tests pass. Log: `docs/learning-log/2026-10-05_1338_place-search-retries.md`.
+- ✅ **Unknown-place follow-up** — "not found" now asks for the address and offers **I-pin sa mapa**; the reply keeps the
+  other place and goes through From/To (no AI call). No stop within 1 km → names the nearest stop (≤ 5 km) with a
+  one-tap route to it. 138 tests pass. Log: `docs/learning-log/2026-10-05_1434_ask-address-and-pin.md`.
+- ✅ **Corrections: LRT-1 to Dr. Santos + EDSA Carousel** — LRT-1 now has 25 stations (Cavite Extension phase 1), the
+  Carousel runs PITX ⇄ Monumento (23/24 stops), 2 landmarks added (Dr. Santos LRT/SM Sucat, DFA Aseana). Network:
+  1,721 patterns, 4,887 stops. 138 tests pass. Log: `docs/learning-log/2026-10-05_1535_lrt1-extension-and-carousel.md`.
 
 ### Open items
+- [ ] **Owner:** `NOMINATIM_CONTACT` is now in `.env.local`; restart `npm run dev`, ask about a place not in the
+      landmark list, and check the terminal for `place not found` / `Nominatim failed` lines. Add frequent misses to
+      `data/landmarks.json` (with a `source`). Also set `NOMINATIM_CONTACT` in Vercel for Phase 6.
 - [ ] **Owner:** run `npm run dev` and check the UI with real map tiles and real Gemini leads (both blocked in the
       cloud workspace). Also try "use my location" on a phone (needs HTTPS or localhost).
 - [x] Real Gemini run on the owner's PC (2026-10-05): works via the backup model. Found: `gemini-3.8-flash` free tier =
@@ -45,8 +57,9 @@
 - [ ] Workflow: the cloud agent **can't push** to the repo (the Claude GitHub App isn't installed for it), so for
       now work is copied into `C:\Projects\B.AI` and the owner commits and pushes. To let agents push to a
       branch instead, install the app: https://github.com/apps/claude/installations/select_target
-- [ ] Remaining corrections (EDSA Carousel, LRT-1 Cavite ext., LRT-2 East ext., stale EDSA buses): list in
-      `docs/data-notes.md`. Not blocking; add as the router tests show where they matter.
+- [ ] Remaining corrections (LRT-2 East ext., stale EDSA buses, PITX city bus routes, PITX modern jeeps, UV Express):
+      list in `docs/data-notes.md`. Stale EDSA buses can't be removed blindly (acceptance test 2 uses one). Not blocking.
+- [ ] Router treats the Carousel like any bus (same speed); consider a faster speed for busway routes.
 
 ### Key facts every agent needs
 - **Stack as installed:** Next.js **16.3** (read `AGENTS.md`: APIs differ from older Next), React 19, Tailwind v4,

@@ -11,7 +11,7 @@ import { nearbyStops, type NearbyStop } from "./nearby";
 import { prepare } from "./prepare";
 import { buildItinerary, type Ride } from "./legs";
 import {
-  MAX_RIDES, MAX_WALK_SHARE, MIN_RIDE_M, SPEED_KMH, WALK_ONLY_MAX_M, WALK_RADIUS_M, WALK_RADIUS_WIDE_M,
+  MAX_RIDES, MAX_WALK_SHARE, NEAREST_STOP_MAX_M, MIN_RIDE_M, SPEED_KMH, WALK_ONLY_MAX_M, WALK_RADIUS_M, WALK_RADIUS_WIDE_M,
   modeAllowed, walkMetersFromStraight, walkMinutes, weightsFor, type Weights,
 } from "./params";
 
@@ -211,5 +211,19 @@ export function planTrip(net: Network, origin: PlaceRef, destination: PlaceRef, 
       return { status: "ok", itineraries: its.map(({ it }) => it), walkRadiusM: radius };
     }
   }
-  return { status, itineraries: [], walkRadiusM: radius };
+  const nearest = status === "no_stops_near_origin" ? nearestStop(net, origin, "origin")
+    : status === "no_stops_near_destination" ? nearestStop(net, destination, "destination") : undefined;
+  return { status, itineraries: [], walkRadiusM: radius, ...(nearest ? { nearest } : {}) };
+}
+
+/** The closest stop to a place with none in walking range, so the answer can point the way to it. */
+export function nearestStop(net: Network, place: PlaceRef, side: "origin" | "destination"): PlanResult["nearest"] {
+  const [best] = nearbyStops(net, place.lat, place.lon, NEAREST_STOP_MAX_M);
+  if (!best) return undefined;
+  const s = net.stops[best.stop]!;
+  return {
+    side,
+    stop: { name: s.name, lat: s.lat, lon: s.lon, stopId: s.id },
+    meters: Math.round(haversineM(place.lat, place.lon, s.lat, s.lon)),
+  };
 }

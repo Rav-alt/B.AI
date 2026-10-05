@@ -109,6 +109,21 @@ describe("planTrip", () => {
     expect(planTrip(mini, far, near(3)).itineraries).toEqual([]);
   });
 
+  it("names the nearest stop (up to 5 km) when none is within walking distance", () => {
+    const twoKmNorth = { name: "2 km north", lat: 14.638, lon: 121.009 }; // ~2 km north of North 2
+    const res = planTrip(mini, twoKmNorth, near(3));
+    expect(res.status).toBe("no_stops_near_origin");
+    expect(res.nearest).toMatchObject({ side: "origin", stop: { name: "North 2", stopId: "s7" } });
+    expect(res.nearest!.meters).toBeGreaterThan(1900);
+    expect(res.nearest!.meters).toBeLessThan(2100);
+    expect(planTrip(mini, near(3), twoKmNorth).nearest?.side).toBe("destination");
+    expect(PlanResultSchema.parse(res)).toEqual(res);
+    // Farther than 5 km from everything: no suggestion.
+    expect(planTrip(mini, { name: "nowhere", lat: 14.7, lon: 121.2 }, near(3)).nearest).toBeUndefined();
+    // Found a route or "no_route": no suggestion either.
+    expect(planTrip(mini, near(7), near(0)).nearest).toBeUndefined();
+  });
+
   it("reports no_route when stops exist but nothing connects them", () => {
     // From North 2 nothing goes anywhere (B1 ends there, one way).
     const res = planTrip(mini, near(7), near(0));

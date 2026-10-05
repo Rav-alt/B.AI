@@ -152,8 +152,8 @@ the realistic answer. This is the strongest case for the corrections file.
 Names and sources only; coordinates/stops get filled in during Phase 1. Every entry needs `source` + `updated`.
 
 **addRoutes**
-- [ ] **EDSA Carousel** (bus, Monumento – PITX, busway stations). Source: DOTr/LTFRB route announcements, 2020–.
-- [ ] **LRT-1 Cavite Extension phase 1**: Redemptorist-Aseana, MIA Road, PITX, Ninoy Aquino Ave, Dr. Santos (opened Nov 2024). Source: LRMC.
+- [x] **EDSA Carousel** (bus, Monumento – PITX, busway stations). *Done 2026-10-05: `CORR_CAROUSEL_NB` (23 stops) and `CORR_CAROUSEL_SB` (24 stops: adds Tramo, One Ayala instead of Ayala, Ayala Malls Manila Bay instead of City of Dreams). Stop coordinates are approximate (nearest feed stop/landmark; each one is listed in the entry's `source`).*
+- [x] **LRT-1 Cavite Extension phase 1**: Redemptorist-Aseana, MIA Road, PITX, Ninoy Aquino Ave, Dr. Santos (opened Nov 2024). Source: LRMC. *Done 2026-10-05: the feed line `ROUTE_880747` is removed and replaced by `CORR_LRT1` (25 stations, the 20 old ones reuse feed stops). Side effect: LRT-1 lost the feed's drawn shape, so the map draws it station to station.*
 - [x] **LRT-1 north**: "Roosevelt" was renamed **Fernando Poe Jr.** (Aug 2023); Balintawak already present. *Done in Phase 1 as a `renameStops` entry.*
 - [ ] **LRT-2 East Extension**: Marikina-Pasig, Antipolo (opened Jul 2021). Source: LRTA.
 - [ ] **BGC Bus** current routes (feed has only "Fort Central", "Fort West" loops).
@@ -163,6 +163,7 @@ Names and sources only; coordinates/stops get filled in during Phase 1. Every en
 **removeRoutes**
 - [x] **PNR Metro Commuter** (`ROUTE_880872`): Metro Manila service suspended since 28 Mar 2024 for NSCR construction. *Done in Phase 1.*
 - [ ] **EDSA provincial/city bus routes** replaced by the Carousel (filter: `PUB` routes whose name contains "via EDSA" or that run along EDSA between Monumento and Pasay). Needs a manual review list, not a blind regex.
+  *Checked 2026-10-05: about 180 of the 191 feed bus patterns ride EDSA for 25+ stops, including the Baclaran – SM Fairview bus that acceptance test 2 uses. Removing them all would leave almost no city buses (current replacements like Route 6/7 to PITX are not in the data), so they stay for now. Decide per route once current LTFRB routes are added.*
 
 **renameRoutes**
 - [x] LRT-1 "Baclaran – Roosevelt" → "Baclaran – Fernando Poe Jr.". *Not a route rename after all: train names are built from their end stations, so renaming the station did it. The Cavite extension will make it "Dr. Santos – Fernando Poe Jr." the same way.*
@@ -313,3 +314,30 @@ Sources: [Gemini models](https://ai.google.dev/gemini-api/docs/models),
 [Gemini pricing](https://ai.google.dev/gemini-api/docs/pricing),
 [Gemini rate limits](https://ai.google.dev/gemini-api/docs/rate-limits),
 [sakayph/gtfs](https://github.com/sakayph/gtfs).
+
+## 2026-10-05 corrections: LRT-1 to Dr. Santos + EDSA Carousel
+
+Source research (stations, stop order, PITX gates and routes, with links): the "LRT-1, EDSA Carousel & PITX Route Guide
+(2026)" doc made for the owner, built from pitx.ph, lrmc.ph, Wikipedia and 2026 commuter guides.
+
+| | Before | After |
+|---|---|---|
+| Patterns | 1,719 | 1,721 (bus 191 → 193) |
+| Stops | 4,835 | 4,887 |
+| Walking transfers | 7,152 | 7,429 |
+| Patterns with a shape | 8 | 6 (LRT-1 now drawn station to station) |
+| Road directions known | 1,395 | 1,399 |
+
+Router spot checks (`npm run try:router -- "<from>" "<to>"`):
+- PITX → Monumento: LRT-1 direct, PITX LRT ⇒ Monumento LRT, ~39 min.
+- Pedro Gil → PITX: LRT-1 direct, ~19 min.
+- SM Sucat (Dr. Santos) → Quiapo Church: LRT-1 to Carriedo, ~32 min.
+- Ayala → PITX: Carousel from One Ayala direct (~36 min), or MRT-3 + LRT-1 (~24 min).
+- DFA Aseana → Cubao: Carousel to Taft, then MRT-3.
+
+Known limits:
+- The router prices the Carousel like any bus (same speed), so it doesn't know the busway is faster than EDSA traffic.
+  MOA → SM North still prefers Carousel + MRT-3 over a direct Carousel ride.
+- Stale EDSA buses (see above) still show up next to the Carousel.
+- Not added yet: the city buses that end at PITX (LTFRB Routes 4–7, 14, 18, 22, 23, 26–29, 31, 32, 34, 43, 47, 52, 55, 65),
+  PITX modern jeeps (Gate 7) and UV Express. They need real stop sequences; the guide has their names and roads only.

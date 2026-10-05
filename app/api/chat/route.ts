@@ -39,6 +39,8 @@ export async function POST(request: Request): Promise<Response> {
       nominatim: getNominatim(),
       ai: getAiClient(),
       onAiError: (stage, e) => console.warn(`[api/chat] AI ${stage} failed:`, e instanceof Error ? e.message : e),
+      onSearchError: (q, e) => console.warn(`[api/chat] Nominatim failed for "${q}":`, e instanceof Error ? e.message : e),
+      onPlaceNotFound: (q, reason) => console.info(`[api/chat] place not found (${reason}): "${q}"`),
     });
     return Response.json(response);
   } catch (e) {

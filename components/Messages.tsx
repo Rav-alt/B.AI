@@ -2,7 +2,7 @@
 // Chat messages: the user's bubble, B.AI's answers (no bubble), the thinking dots.
 import { useState } from "react";
 import * as m from "motion/react-m";
-import type { ChatResponse, GeoPlace } from "@/lib/types";
+import type { ChatResponse, GeoPlace, Lang } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { LogoPlacard } from "./Logo";
 import { RichText } from "./RichText";
@@ -10,8 +10,9 @@ import { RoutePlan } from "./RoutePlan";
 import { CheckAnswer } from "./CheckAnswer";
 import { Disclaimer } from "./Disclaimer";
 import { FallbackForm, type FallbackSubmit } from "./FallbackForm";
+import { FollowUp, type FollowUpInfo } from "./FollowUp";
 import { fadeUp, thinkingDot } from "@/lib/motion";
-import { tr } from "@/lib/ui/route-view";
+import { stopLabel, tr } from "@/lib/ui/route-view";
 
 export function UserMessage({ text }: { text: string }) {
   return (
@@ -55,6 +56,10 @@ export interface BotActions {
   useLocation: () => void;
   /** Submit the From/To form. */
   submitForm: (v: FallbackSubmit) => void;
+  /** "Hindi ko mahanap": send the question again with an address typed for the missing place… */
+  answerPlace: (f: FollowUpInfo, text: string) => void;
+  /** …or with a spot pinned on the map. */
+  pinPlace: (f: FollowUpInfo, spot: { name: string; lat: number; lon: number }) => void;
 }
 
 export function BotMessage({ res, actions }: { res: ChatResponse; actions: BotActions }) {
@@ -122,13 +127,52 @@ export function BotMessage({ res, actions }: { res: ChatResponse; actions: BotAc
           </div>
           <FallbackForm lang={lang} disabled={actions.pending} onSubmit={actions.submitForm} />
         </>
+      ) : res.kind === "place_not_found" && res.followUp ? (
+        <>
+          <RichText text={res.text} className="text-[17px] leading-[1.4]" />
+          <FollowUp
+            followUp={res.followUp}
+            lang={lang}
+            disabled={actions.pending}
+            onAddress={(text) => actions.answerPlace(res.followUp!, text)}
+            onPin={(spot) => actions.pinPlace(res.followUp!, { name: tr(lang, "Naka-pin na lugar", "Pinned spot"), ...spot })}
+          />
+        </>
       ) : (
         <>
           <RichText text={res.text} className="text-[17px] leading-[1.4]" />
+          {res.kind === "no_route" && res.plan?.nearest && (
+            <NearestStopButton nearest={res.plan.nearest} lang={lang} disabled={actions.pending} onPick={actions.pick} />
+          )}
           {res.kind === "no_route" && <Disclaimer text={res.disclaimer} lang={lang} />}
         </>
       )}
     </m.section>
+  );
+}
+
+/** "Ruta mula sa <nearest stop>": asks again with that stop as the start (or end). */
+function NearestStopButton({
+  nearest,
+  lang,
+  disabled,
+  onPick,
+}: {
+  nearest: NonNullable<NonNullable<ChatResponse["plan"]>["nearest"]>;
+  lang: Lang;
+  disabled: boolean;
+  onPick: BotActions["pick"];
+}) {
+  const name = stopLabel(nearest.stop.name);
+  return (
+    <Button
+      variant="outline"
+      disabled={disabled}
+      onClick={() => onPick(nearest.side, { ...nearest.stop, source: "stop" })}
+      className="h-auto min-h-12 justify-start px-3.5 py-2.5 text-left whitespace-normal"
+    >
+      {nearest.side === "origin" ? tr(lang, `Ruta mula sa ${name}`, `Route from ${name}`) : tr(lang, `Ruta papunta sa ${name}`, `Route to ${name}`)}
+    </Button>
   );
 }
 

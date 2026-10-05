@@ -183,6 +183,12 @@ export const PlanResultSchema = z.object({
   itineraries: z.array(ItinerarySchema).max(3),
   /** The walking radius (metres of walking) that produced the result: 600, or 1000 when widened. */
   walkRadiusM: z.number().positive(),
+  /**
+   * When no stop is within walking distance of one end: the nearest stop in the data on that side
+   * (up to NEAREST_STOP_MAX_M away), so B.AI can say "the nearest stop is ~1.4 km away" and offer a
+   * route from/to it.
+   */
+  nearest: z.object({ side: z.enum(["origin", "destination"]), stop: PlaceRefSchema, meters: z.number().nonnegative() }).optional(),
 });
 export type PlanResult = z.infer<typeof PlanResultSchema>;
 
@@ -300,7 +306,7 @@ export type Lang = z.infer<typeof LangSchema>;
 // /api/chat request and response
 // ---------------------------------------------------------------------------
 
-const PickedPlaceSchema = z.object({ name: z.string().min(1).max(200), lat: z.number(), lon: z.number(), stopId: z.string().optional() });
+export const PickedPlaceSchema = z.object({ name: z.string().min(1).max(200), lat: z.number(), lon: z.number(), stopId: z.string().optional() });
 
 export const ChatRequestSchema = z
   .object({
@@ -349,6 +355,23 @@ export const ChatResponseSchema = z.object({
   check: CheckResultSchema.optional(),
   /** For ask_place: which end is ambiguous, and the options. */
   choices: z.object({ field: z.enum(["origin", "destination"]), options: z.array(GeoPlaceSchema).min(2) }).optional(),
+  /**
+   * For place_not_found: which place to ask about again, and the question as a plain From/To request
+   * (no AI needed) so the reply, an address or a pin on the map, can be sent with the other place kept.
+   */
+  followUp: z
+    .object({
+      field: z.enum(["origin", "destination"]),
+      query: z.string(),
+      request: z.object({
+        from: z.string().max(200).optional(),
+        fromCurrentLocation: z.boolean().optional(),
+        to: z.string().max(200),
+        prefs: PrefsSchema.optional(),
+        picked: z.object({ origin: PickedPlaceSchema.optional(), destination: PickedPlaceSchema.optional() }),
+      }),
+    })
+    .optional(),
   /** The standard data disclaimer; present on every route/check/no_route answer. */
   disclaimer: z.string().optional(),
   /** Who wrote `text`: Gemini, or the plain template. */

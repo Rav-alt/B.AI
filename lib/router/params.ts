@@ -13,6 +13,8 @@ export const WALK_RADIUS_M = 600;
 export const WALK_RADIUS_WIDE_M = 1000;
 /** A trip this short (metres of walking) is also offered as "just walk". */
 export const WALK_ONLY_MAX_M = 1200;
+/** How far to look for "the nearest stop" when nothing is within walking distance (tricycle range). */
+export const NEAREST_STOP_MAX_M = 5000;
 
 /**
  * Average door-to-door speeds in km/h, including stops and Metro Manila traffic.

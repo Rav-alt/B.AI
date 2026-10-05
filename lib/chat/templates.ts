@@ -37,6 +37,20 @@ function summary(it: Itinerary, lang: Lang): string {
 
 function noRouteText(plan: PlanResult, origin: GeoPlace, destination: GeoPlace, lang: Lang): string {
   const ask = lang === "en" ? " Try asking a barker or fellow commuters nearby." : " Subukang magtanong sa barker o sa mga kapwa commuter.";
+  const n = plan.nearest;
+  if (n && plan.status !== "no_route") {
+    const place = b(n.side === "origin" ? origin.name : destination.name);
+    const stop = b(shortStop(n.stop.name));
+    const far = `${lang === "en" ? "about" : "mga"} ${walkDistance(n.meters)}`;
+    if (n.side === "origin") {
+      return lang === "en"
+        ? `No jeep, bus or train stop in our data is within walking distance of ${place}. The nearest is ${stop}, ${far} away: take a tricycle or walk there. Tap below for the route from there.`
+        : `Walang jeep, bus o train stop na malapit-lapit sa ${place} sa data namin. Ang pinakamalapit ay ${stop}, ${far} ang layo: mag-tricycle o maglakad papunta doon. Pindutin sa ibaba para sa ruta mula doon.`;
+    }
+    return lang === "en"
+      ? `No stop in our data is within walking distance of ${place}. The nearest is ${stop}, ${far} away: ride there, then take a tricycle or walk. Tap below for the route to it.`
+      : `Walang stop na malapit-lapit sa ${place} sa data namin. Ang pinakamalapit ay ${stop}, ${far} ang layo: doon ka bumaba, tapos mag-tricycle o maglakad. Pindutin sa ibaba para sa ruta papunta doon.`;
+  }
   switch (plan.status) {
     case "no_stops_near_origin":
       return (lang === "en" ? `I don't have any jeep, bus or train stop within walking distance of ${b(origin.name)} in our data.` : `Walang jeep, bus o train stop na malapit-lapit sa ${b(origin.name)} sa data namin.`) + ask;
@@ -145,8 +159,8 @@ export function placeNotFoundText(query: string, outside: boolean, lang: Lang): 
       : `Mukhang nasa labas ng Metro Manila ang "${query}". Metro Manila lang ang sakop ko sa ngayon.`;
   }
   return lang === "en"
-    ? `I couldn't find "${query}". Try a well-known place nearby: a station, mall, school or major corner.`
-    : `Hindi ko mahanap ang "${query}". Subukan ang kilalang lugar malapit doon: istasyon, mall, school o malaking kanto.`;
+    ? `I couldn't find "${query}". What's its address (street and barangay or city), or a landmark near it? You can also pin it on the map.`
+    : `Hindi ko mahanap ang "${query}". Ano ang address nito (street at barangay o city), o anong malapit na landmark? Puwede mo ring i-pin sa mapa.`;
 }
 
 export const needLocationText = (lang: Lang) =>

@@ -27,10 +27,11 @@ describe("network.json", () => {
     expect(count("train")).toBe(6); // LRT-1, LRT-2, MRT-3 × 2 directions (PNR removed)
   });
 
-  it("applies corrections: PNR gone, Roosevelt station renamed", () => {
+  it("applies corrections: PNR gone, Roosevelt renamed, LRT-1 runs to Dr. Santos", () => {
     expect(net.patterns.some((p) => p.line === "PNR")).toBe(false);
     const lrt1 = net.patterns.filter((p) => p.line === "LRT-1");
-    expect(lrt1.map((p) => p.name).sort()).toEqual(["Baclaran – Fernando Poe Jr.", "Fernando Poe Jr. – Baclaran"]);
+    expect(lrt1.map((p) => p.name).sort()).toEqual(["Dr. Santos – Fernando Poe Jr.", "Fernando Poe Jr. – Dr. Santos"]);
+    for (const p of lrt1) expect(p.stops.length).toBe(25); // Cavite Extension phase 1 (Nov 2024)
     expect(net.stops.some((s) => s.name.startsWith("Roosevelt LRT"))).toBe(false);
   });
 

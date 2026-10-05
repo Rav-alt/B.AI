@@ -149,6 +149,53 @@ describe("places in the conversation", () => {
     expect(r.text).toContain("Xyzzy Plugh");
   });
 
+  it("asks for an address and returns a follow-up that keeps the found place and skips the AI", async () => {
+    const ai = fakeAi(plan("Pedro Gil Taft", "Xyzzy Plugh Compound", { lessWalking: true }));
+    const r = await ask({ message: "Pedro Gil Taft papuntang Xyzzy Plugh Compound" }, ai);
+    expect(r.kind).toBe("place_not_found");
+    expect(r.text).toMatch(/address/);
+    expect(r.followUp).toMatchObject({
+      field: "destination",
+      query: "Xyzzy Plugh Compound",
+      request: { from: "Pedro Gil Taft", to: "Xyzzy Plugh Compound", prefs: { lessWalking: true }, picked: { origin: { name: "Pedro Gil Taft" } } },
+    });
+
+    // The reply ("UST") replaces the unknown place; the From/To path needs no AI call.
+    ai.parseIntent.mockClear();
+    const again = await ask({ ...r.followUp!.request, to: "UST" }, ai);
+    expect(again.kind).toBe("route");
+    expect(again.origin!.name).toBe("Pedro Gil Taft");
+    expect(again.destination!.name).toBe("UST");
+    expect(ai.parseIntent).not.toHaveBeenCalled();
+  });
+
+  it("a pin on the map is used as-is; a pin outside Metro Manila is refused", async () => {
+    const r = await ask({ from: "Xyzzy Plugh", to: "UST" }, null);
+    expect(r.followUp?.field).toBe("origin");
+    expect(r.followUp?.request.picked.destination?.name).toBe("UST"); // known place kept (local list only)
+    const pin = { name: "Naka-pin na lugar", lat: 14.5766, lon: 120.9881 };
+    const routed = await ask({ ...r.followUp!.request, picked: { origin: pin } }, null);
+    expect(routed.kind).toBe("route");
+    expect(routed.origin).toMatchObject({ name: "Naka-pin na lugar", lat: 14.5766 });
+    const outside = await ask({ ...r.followUp!.request, picked: { origin: { ...pin, lat: 16.41, lon: 120.6 } } }, null);
+    expect(outside.kind).toBe("place_not_found");
+    expect(outside.text).toMatch(/labas ng Metro Manila/);
+    expect(outside.followUp).toBeUndefined();
+  });
+
+  it("no stop near a place: the answer names the nearest one and how far", () => {
+    const origin = { name: "Bahay", lat: 14.6, lon: 121.0, source: "landmark" as const };
+    const destination = { name: "UST", lat: 14.6097, lon: 120.9897, source: "landmark" as const };
+    const text = planLead(
+      { status: "no_stops_near_origin", itineraries: [], walkRadiusM: 1000,
+        nearest: { side: "origin", stop: { name: "Aurora Blvd / Gilmore Ave Intersection, Quezon City", lat: 14.61, lon: 121.03 }, meters: 1420 } },
+      origin, destination, "fil",
+    );
+    expect(text).toContain("**Aurora Blvd / Gilmore Ave**");
+    expect(text).toContain("mga 1.4 km");
+    expect(text).toMatch(/tricycle/);
+  });
+
   it("English questions get English templates", async () => {
     const r = await ask({ message: "How do I get from Cubao to Ayala?" }, null);
     expect(r.kind).toBe("route");

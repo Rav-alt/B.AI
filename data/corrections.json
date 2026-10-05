@@ -5,6 +5,12 @@
       "reason": "PNR Metro Commuter Line stopped running in Metro Manila on 28 Mar 2024 for NSCR construction (planned for about 5 years).",
       "source": "https://www.rappler.com/business/pnr-stop-operations-march-28-2024/",
       "updated": "2026-10-04"
+    },
+    {
+      "routeId": "ROUTE_880747",
+      "reason": "Replaced by CORR_LRT1 below: the 2015 feed ends at Baclaran, but LRT-1 has run to Dr. Santos (5 more stations) since 16 Nov 2024.",
+      "source": "https://lrmc.ph/2024/11/16/lrt-1-cavite-extension-phase-1-ready-to-serve-passengers/",
+      "updated": "2026-10-05"
     }
   ],
   "renameRoutes": [
@@ -29,6 +35,358 @@
       "updated": "2026-10-04"
     }
   ],
-  "addRoutes": [],
+  "addRoutes": [
+    {
+      "routeId": "CORR_LRT1",
+      "name": "Fernando Poe Jr. - Dr. Santos",
+      "mode": "train",
+      "line": "LRT-1",
+      "stops": [
+        {
+          "stopId": "LTFRB_4963"
+        },
+        {
+          "stopId": "LTFRB_4962"
+        },
+        {
+          "stopId": "LTFRB_4961"
+        },
+        {
+          "stopId": "LTFRB_4960"
+        },
+        {
+          "stopId": "LTFRB_4959"
+        },
+        {
+          "stopId": "LTFRB_4958"
+        },
+        {
+          "stopId": "LTFRB_4957"
+        },
+        {
+          "stopId": "LTFRB_4956"
+        },
+        {
+          "stopId": "LTFRB_4955"
+        },
+        {
+          "stopId": "LTFRB_4954"
+        },
+        {
+          "stopId": "LTFRB_4953"
+        },
+        {
+          "stopId": "LTFRB_4952"
+        },
+        {
+          "stopId": "LTFRB_4951"
+        },
+        {
+          "stopId": "LTFRB_4950"
+        },
+        {
+          "stopId": "LTFRB_4949"
+        },
+        {
+          "stopId": "LTFRB_4948"
+        },
+        {
+          "stopId": "LTFRB_4947"
+        },
+        {
+          "stopId": "LTFRB_4946"
+        },
+        {
+          "stopId": "LTFRB_4945"
+        },
+        {
+          "stopId": "LTFRB_4944"
+        },
+        {
+          "name": "Redemptorist-Aseana LRT",
+          "lat": 14.53028,
+          "lon": 120.99294
+        },
+        {
+          "name": "MIA Road LRT",
+          "lat": 14.51843,
+          "lon": 120.99299
+        },
+        {
+          "name": "PITX LRT",
+          "lat": 14.50848,
+          "lon": 120.99128
+        },
+        {
+          "name": "Ninoy Aquino Avenue LRT",
+          "lat": 14.49864,
+          "lon": 120.99436
+        },
+        {
+          "name": "Dr. Santos LRT",
+          "lat": 14.4853,
+          "lon": 120.98956
+        }
+      ],
+      "bothDirections": true,
+      "source": "https://lrmc.ph/2024/11/16/lrt-1-cavite-extension-phase-1-ready-to-serve-passengers/ (5 new stations, opened 16 Nov 2024); station coordinates from each station's Wikipedia infobox, e.g. https://en.wikipedia.org/wiki/PITX_station . The 20 older stations reuse the feed's stops.",
+      "updated": "2026-10-05"
+    },
+    {
+      "routeId": "CORR_CAROUSEL_NB",
+      "name": "PITX - Monumento via EDSA Carousel",
+      "mode": "bus",
+      "stops": [
+        {
+          "name": "PITX (EDSA Carousel)",
+          "lat": 14.51012,
+          "lon": 120.9913
+        },
+        {
+          "name": "City of Dreams (EDSA Carousel)",
+          "lat": 14.5225,
+          "lon": 120.9905
+        },
+        {
+          "name": "DFA Aseana (EDSA Carousel)",
+          "lat": 14.5292,
+          "lon": 120.99
+        },
+        {
+          "name": "SM Mall of Asia (EDSA Carousel)",
+          "lat": 14.5357,
+          "lon": 120.986
+        },
+        {
+          "name": "Roxas Boulevard (EDSA Carousel)",
+          "lat": 14.5374,
+          "lon": 120.9935
+        },
+        {
+          "name": "Taft Avenue (EDSA Carousel)",
+          "lat": 14.5376,
+          "lon": 121.001
+        },
+        {
+          "name": "Ayala (EDSA Carousel)",
+          "lat": 14.5492,
+          "lon": 121.028
+        },
+        {
+          "name": "Buendia (EDSA Carousel)",
+          "lat": 14.5541,
+          "lon": 121.034
+        },
+        {
+          "name": "Guadalupe (EDSA Carousel)",
+          "lat": 14.5666,
+          "lon": 121.045
+        },
+        {
+          "name": "Ortigas (EDSA Carousel)",
+          "lat": 14.5878,
+          "lon": 121.057
+        },
+        {
+          "name": "Santolan (EDSA Carousel)",
+          "lat": 14.6078,
+          "lon": 121.057
+        },
+        {
+          "name": "Main Avenue (EDSA Carousel)",
+          "lat": 14.6137,
+          "lon": 121.054
+        },
+        {
+          "name": "Nepa Q-Mart (EDSA Carousel)",
+          "lat": 14.6264,
+          "lon": 121.048
+        },
+        {
+          "name": "Kamuning (EDSA Carousel)",
+          "lat": 14.6351,
+          "lon": 121.043
+        },
+        {
+          "name": "Quezon Avenue (EDSA Carousel)",
+          "lat": 14.6438,
+          "lon": 121.038
+        },
+        {
+          "name": "Philam (EDSA Carousel)",
+          "lat": 14.6484,
+          "lon": 121.035
+        },
+        {
+          "name": "North Avenue (EDSA Carousel)",
+          "lat": 14.65177,
+          "lon": 121.03234
+        },
+        {
+          "name": "SM North EDSA (EDSA Carousel)",
+          "lat": 14.6554,
+          "lon": 121.031
+        },
+        {
+          "name": "Fernando Poe Jr. (EDSA Carousel)",
+          "lat": 14.6575,
+          "lon": 121.022
+        },
+        {
+          "name": "Kaingin Road (EDSA Carousel)",
+          "lat": 14.6575,
+          "lon": 121.011
+        },
+        {
+          "name": "Balintawak (EDSA Carousel)",
+          "lat": 14.6574,
+          "lon": 121.004
+        },
+        {
+          "name": "Bagong Barrio (EDSA Carousel)",
+          "lat": 14.6573,
+          "lon": 120.993
+        },
+        {
+          "name": "Monumento (EDSA Carousel)",
+          "lat": 14.6572,
+          "lon": 120.986
+        }
+      ],
+      "bothDirections": false,
+      "source": "Stop order: https://jontotheworld.com/edsa-carousel-complete-route-bus-stops-schedule-fare-guide/ (Aug 2026) and https://en.wikipedia.org/wiki/EDSA_Carousel . Coordinates are approximate (busway stops sit in the EDSA median), taken from the nearest feed stop or landmark: PITX: PITX landmark, https://en.wikipedia.org/wiki/Para%C3%B1aque_Integrated_Terminal_Exchange; City of Dreams: approx. Macapagal Blvd at Ayala Malls Manila Bay, near GTFS stop LTFRB_2293; DFA Aseana: GTFS stop LTFRB_2290 (sakayph/gtfs) Bradco / Macapagal; SM Mall of Asia: GTFS stop LTFRB_1739 (sakayph/gtfs) EDSA Extension by MOA; Roxas Boulevard: approx. EDSA / Roxas Blvd, between GTFS stops LTFRB_1737 and LTFRB_1736; Taft Avenue: GTFS stop LTFRB_4976 (sakayph/gtfs) Taft Ave MRT; Ayala: GTFS stop LTFRB_4974 (sakayph/gtfs) Ayala MRT; Buendia: GTFS stop LTFRB_4973 (sakayph/gtfs) Buendia MRT; Guadalupe: GTFS stop LTFRB_4972 (sakayph/gtfs) Guadalupe MRT; Ortigas: GTFS stop LTFRB_4969 (sakayph/gtfs) Ortigas MRT; Santolan: GTFS stop LTFRB_4220 (sakayph/gtfs) Santolan-Annapolis MRT; Main Avenue: GTFS stop LTFRB_4217 (sakayph/gtfs) Main Avenue Cubao; Nepa Q-Mart: GTFS stop LTFRB_4210 (sakayph/gtfs) EDSA near Kamias Rd; Kamuning: GTFS stop LTFRB_4205 (sakayph/gtfs) GMA-Kamuning MRT; Quezon Avenue: GTFS stop LTFRB_4199 (sakayph/gtfs) Quezon Ave MRT; Philam: GTFS stop LTFRB_4196 (sakayph/gtfs) EDSA between Quezon Ave and North Ave; North Avenue: GTFS stop STOP_880847 (sakayph/gtfs) North Avenue MRT; SM North EDSA: GTFS stop LTFRB_1244 (sakayph/gtfs) EDSA / North Ave; Fernando Poe Jr.: GTFS stop LTFRB_4963 (sakayph/gtfs) Fernando Poe Jr. LRT; Kaingin Road: GTFS stop LTFRB_4337 (sakayph/gtfs) Kaingin Road; Balintawak: GTFS stop LTFRB_4340 (sakayph/gtfs) Balintawak LRT; Bagong Barrio: GTFS stop LTFRB_1153 (sakayph/gtfs) EDSA / Gen. Malvar; Monumento: GTFS stop LTFRB_1156 (sakayph/gtfs) EDSA near Monumento",
+      "updated": "2026-10-05"
+    },
+    {
+      "routeId": "CORR_CAROUSEL_SB",
+      "name": "Monumento - PITX via EDSA Carousel",
+      "mode": "bus",
+      "stops": [
+        {
+          "name": "Monumento (EDSA Carousel)",
+          "lat": 14.6572,
+          "lon": 120.986
+        },
+        {
+          "name": "Bagong Barrio (EDSA Carousel)",
+          "lat": 14.6573,
+          "lon": 120.993
+        },
+        {
+          "name": "Balintawak (EDSA Carousel)",
+          "lat": 14.6574,
+          "lon": 121.004
+        },
+        {
+          "name": "Kaingin Road (EDSA Carousel)",
+          "lat": 14.6575,
+          "lon": 121.011
+        },
+        {
+          "name": "Fernando Poe Jr. (EDSA Carousel)",
+          "lat": 14.6575,
+          "lon": 121.022
+        },
+        {
+          "name": "SM North EDSA (EDSA Carousel)",
+          "lat": 14.6554,
+          "lon": 121.031
+        },
+        {
+          "name": "North Avenue (EDSA Carousel)",
+          "lat": 14.65177,
+          "lon": 121.03234
+        },
+        {
+          "name": "Philam (EDSA Carousel)",
+          "lat": 14.6484,
+          "lon": 121.035
+        },
+        {
+          "name": "Quezon Avenue (EDSA Carousel)",
+          "lat": 14.6438,
+          "lon": 121.038
+        },
+        {
+          "name": "Kamuning (EDSA Carousel)",
+          "lat": 14.6351,
+          "lon": 121.043
+        },
+        {
+          "name": "Nepa Q-Mart (EDSA Carousel)",
+          "lat": 14.6264,
+          "lon": 121.048
+        },
+        {
+          "name": "Main Avenue (EDSA Carousel)",
+          "lat": 14.6137,
+          "lon": 121.054
+        },
+        {
+          "name": "Santolan (EDSA Carousel)",
+          "lat": 14.6078,
+          "lon": 121.057
+        },
+        {
+          "name": "Ortigas (EDSA Carousel)",
+          "lat": 14.5878,
+          "lon": 121.057
+        },
+        {
+          "name": "Guadalupe (EDSA Carousel)",
+          "lat": 14.5666,
+          "lon": 121.045
+        },
+        {
+          "name": "Buendia (EDSA Carousel)",
+          "lat": 14.5541,
+          "lon": 121.034
+        },
+        {
+          "name": "One Ayala (EDSA Carousel)",
+          "lat": 14.5497,
+          "lon": 121.0275
+        },
+        {
+          "name": "Tramo (EDSA Carousel)",
+          "lat": 14.5382,
+          "lon": 121.005
+        },
+        {
+          "name": "Taft Avenue (EDSA Carousel)",
+          "lat": 14.5376,
+          "lon": 121.001
+        },
+        {
+          "name": "Roxas Boulevard (EDSA Carousel)",
+          "lat": 14.5374,
+          "lon": 120.9935
+        },
+        {
+          "name": "SM Mall of Asia (EDSA Carousel)",
+          "lat": 14.5357,
+          "lon": 120.986
+        },
+        {
+          "name": "DFA Aseana (EDSA Carousel)",
+          "lat": 14.5292,
+          "lon": 120.99
+        },
+        {
+          "name": "Ayala Malls Manila Bay (EDSA Carousel)",
+          "lat": 14.5233,
+          "lon": 120.9892
+        },
+        {
+          "name": "PITX (EDSA Carousel)",
+          "lat": 14.51012,
+          "lon": 120.9913
+        }
+      ],
+      "bothDirections": false,
+      "source": "Stop order: https://jontotheworld.com/edsa-carousel-complete-route-bus-stops-schedule-fare-guide/ (Aug 2026) and https://en.wikipedia.org/wiki/EDSA_Carousel . Coordinates are approximate (busway stops sit in the EDSA median), taken from the nearest feed stop or landmark: Monumento: GTFS stop LTFRB_1156 (sakayph/gtfs) EDSA near Monumento; Bagong Barrio: GTFS stop LTFRB_1153 (sakayph/gtfs) EDSA / Gen. Malvar; Balintawak: GTFS stop LTFRB_4340 (sakayph/gtfs) Balintawak LRT; Kaingin Road: GTFS stop LTFRB_4337 (sakayph/gtfs) Kaingin Road; Fernando Poe Jr.: GTFS stop LTFRB_4963 (sakayph/gtfs) Fernando Poe Jr. LRT; SM North EDSA: GTFS stop LTFRB_1244 (sakayph/gtfs) EDSA / North Ave; North Avenue: GTFS stop STOP_880847 (sakayph/gtfs) North Avenue MRT; Philam: GTFS stop LTFRB_4196 (sakayph/gtfs) EDSA between Quezon Ave and North Ave; Quezon Avenue: GTFS stop LTFRB_4199 (sakayph/gtfs) Quezon Ave MRT; Kamuning: GTFS stop LTFRB_4205 (sakayph/gtfs) GMA-Kamuning MRT; Nepa Q-Mart: GTFS stop LTFRB_4210 (sakayph/gtfs) EDSA near Kamias Rd; Main Avenue: GTFS stop LTFRB_4217 (sakayph/gtfs) Main Avenue Cubao; Santolan: GTFS stop LTFRB_4220 (sakayph/gtfs) Santolan-Annapolis MRT; Ortigas: GTFS stop LTFRB_4969 (sakayph/gtfs) Ortigas MRT; Guadalupe: GTFS stop LTFRB_4972 (sakayph/gtfs) Guadalupe MRT; Buendia: GTFS stop LTFRB_4973 (sakayph/gtfs) Buendia MRT; One Ayala: approx. One Ayala terminal beside Ayala MRT (GTFS LTFRB_4974); Tramo: GTFS stop LTFRB_1761 (sakayph/gtfs) EDSA east of Taft; Taft Avenue: GTFS stop LTFRB_4976 (sakayph/gtfs) Taft Ave MRT; Roxas Boulevard: approx. EDSA / Roxas Blvd, between GTFS stops LTFRB_1737 and LTFRB_1736; SM Mall of Asia: GTFS stop LTFRB_1739 (sakayph/gtfs) EDSA Extension by MOA; DFA Aseana: GTFS stop LTFRB_2290 (sakayph/gtfs) Bradco / Macapagal; Ayala Malls Manila Bay: Ayala Malls Manila Bay landmark (Wikipedia); PITX: PITX landmark, https://en.wikipedia.org/wiki/Para%C3%B1aque_Integrated_Terminal_Exchange",
+      "updated": "2026-10-05"
+    }
+  ],
   "landmarkAliases": []
 }

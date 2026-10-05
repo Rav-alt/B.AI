@@ -7,6 +7,8 @@ import type {
 import type { Landmark } from "@/lib/geo/landmarks";
 import type { NominatimClient } from "@/lib/geo/nominatim";
 import { geocodeText, placeFromCoords } from "@/lib/geo/geocode";
+import { insideMetroManila } from "@/lib/geo/bbox";
+import { matchPlace } from "@/lib/geo/places";
 import { planTrip } from "@/lib/router/plan";
 import { checkRoutes } from "@/lib/router/check";
 import { AiUnavailable, type AiClient } from "@/lib/ai/gemini";
@@ -25,6 +27,10 @@ export interface ChatDeps {
   ai: AiClient | null;
   /** Called with the real error whenever an AI call fails (the user only sees the fallback). */
   onAiError?: (stage: "parse" | "answer", error: unknown) => void;
+  /** Called with the real error when Nominatim fails. */
+  onSearchError?: (query: string, error: unknown) => void;
+  /** Called for every place B.AI couldn't find, so missing landmarks can be added to data/landmarks.json. */
+  onPlaceNotFound?: (query: string, reason: "no_match" | "search_unavailable") => void;
 }
 
 type FallbackReason = NonNullable<ChatResponse["fallbackReason"]>;
@@ -32,11 +38,20 @@ type FallbackReason = NonNullable<ChatResponse["fallbackReason"]>;
 /** The request in human words, for the AI answer and for logging. */
 const questionOf = (req: ChatRequest) => req.message ?? `${req.from ?? "my location"} → ${req.to}`;
 
-type Resolved = { ok: true; place: GeoPlace } | { ok: false; response: Omit<ChatResponse, "writer" | "lang"> };
+type Resolved =
+  | { ok: true; place: GeoPlace }
+  /** askAgain: the place wasn't found, so the user can answer with an address or a map pin. */
+  | { ok: false; response: Omit<ChatResponse, "writer" | "lang">; askAgain?: boolean };
 
 async function resolve(field: "origin" | "destination", q: PlaceQuery, req: ChatRequest, deps: ChatDeps, lang: Lang): Promise<Resolved> {
   const picked = req.picked[field];
-  if (picked) return { ok: true, place: { ...picked, source: picked.stopId ? "stop" : "landmark" } };
+  if (picked) {
+    const place: GeoPlace = { ...picked, source: picked.stopId ? "stop" : "landmark" };
+    if (!insideMetroManila(place.lat, place.lon)) {
+      return { ok: false, response: { kind: "place_not_found", text: placeNotFoundText(picked.name, true, lang) } };
+    }
+    return { ok: true, place };
+  }
 
   let result: GeocodeResult;
   let label: string;
@@ -59,8 +74,45 @@ async function resolve(field: "origin" | "destination", q: PlaceQuery, req: Chat
     case "outside_area":
       return { ok: false, response: { kind: "place_not_found", text: placeNotFoundText(label, true, lang) } };
     case "not_found":
-      return { ok: false, response: { kind: "place_not_found", text: placeNotFoundText(label, false, lang) } };
+      deps.onPlaceNotFound?.(label, result.reason);
+      return { ok: false, response: { kind: "place_not_found", text: placeNotFoundText(label, false, lang) }, askAgain: true };
   }
+}
+
+type Picked = NonNullable<ChatRequest["picked"]["origin"]>;
+const toPicked = (p: GeoPlace): Picked => ({ name: p.name.slice(0, 200), lat: p.lat, lon: p.lon, ...(p.stopId ? { stopId: p.stopId } : {}) });
+
+/**
+ * Adds `followUp` to a "not found" answer: the question as From/To
+ * text, with places already found kept as picks. Skipped when the destination is "my location", which
+ * the From/To request can't express.
+ */
+export function withFollowUp(
+  response: Omit<ChatResponse, "writer" | "lang">,
+  field: "origin" | "destination",
+  intent: Extract<Intent, { type: "plan_trip" | "check_routes" }>,
+  req: ChatRequest,
+  found: { origin?: GeoPlace; destination?: GeoPlace } = {},
+): Omit<ChatResponse, "writer" | "lang"> {
+  if ("useCurrentLocation" in intent.destination) return response;
+  const query = "text" in intent[field] ? (intent[field] as { text: string }).text : "";
+  const picked: ChatRequest["picked"] = { ...req.picked };
+  if (found.origin) picked.origin = toPicked(found.origin);
+  if (found.destination) picked.destination = toPicked(found.destination);
+  delete picked[field];
+  return {
+    ...response,
+    followUp: {
+      field,
+      query,
+      request: {
+        ...("useCurrentLocation" in intent.origin ? { fromCurrentLocation: true } : { from: intent.origin.text.slice(0, 200) }),
+        to: intent.destination.text.slice(0, 200),
+        ...(Object.keys(intent.prefs).length ? { prefs: intent.prefs } : {}),
+        picked,
+      },
+    },
+  };
 }
 
 /** Skip the second AI call if the first part already took this long (keeps us inside maxDuration). */
@@ -102,11 +154,20 @@ export async function handleChat(req: ChatRequest, deps: ChatDeps): Promise<Chat
   if (intent.type === "off_topic") return done({ kind: "off_topic", text: offTopicText(lang) });
   if (intent.type === "need_more_info") return done({ kind: "need_more_info", text: needMoreInfoText(intent.missing, lang) });
 
-  // 2. Where exactly?
+  // 2. Where exactly? (If a place can't be found, the answer carries a follow-up so the user's address
+  //    or map pin is sent back as a plain From/To request, keeping the other place and skipping the AI.)
   const o = await resolve("origin", intent.origin, req, deps, lang);
-  if (!o.ok) return done(o.response);
+  if (!o.ok) {
+    if (!o.askAgain) return done(o.response);
+    // Keep the destination too if the local list knows it (instant, no Nominatim), so the reply
+    // doesn't look it up again and the pin map can open near the trip.
+    const dest = req.picked.destination
+      ? undefined
+      : "text" in intent.destination ? matchPlace(deps.net, deps.landmarks, intent.destination.text) : undefined;
+    return done(withFollowUp(o.response, "origin", intent, req, dest?.status === "found" ? { destination: dest.place } : {}));
+  }
   const d = await resolve("destination", intent.destination, req, deps, lang);
-  if (!d.ok) return done({ ...d.response, origin: o.place });
+  if (!d.ok) return done({ ...(d.askAgain ? withFollowUp(d.response, "destination", intent, req, { origin: o.place }) : d.response), origin: o.place });
   const origin = o.place;
   const destination = d.place;
 
