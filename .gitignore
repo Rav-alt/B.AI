@@ -43,3 +43,5 @@ next-env.d.ts
 
 # raw GTFS download (only data/generated/ is committed)
 /data/raw/
+
+.vercel
